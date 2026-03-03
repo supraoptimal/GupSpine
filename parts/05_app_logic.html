@@ -1,0 +1,731 @@
+<script>
+// ============================================================
+// APP LOGIC
+// ============================================================
+
+// Subtle disclaimer for all recommendation outputs
+const PATHWAY_DISCLAIMER = '<p style="font-size:0.72rem;color:var(--grey-400);margin-top:12px;font-style:italic;">Educational reference only. Verify against local guidelines. Clinical decisions remain the responsibility of the treating team.</p>';
+
+// State
+let currentTab = 'decision';
+let currentPathway = null;
+let pathwayStep = 0;
+let pathwayHistory = [];
+let pathwaySelections = {};
+let contactsUnlocked = false;
+
+// Tab switching
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  document.getElementById('content' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  if (tab === 'reference') {
+    showRefSection('workflow');
+  }
+  window.scrollTo(0, 0);
+}
+
+// Pathway management
+function startPathway(id) {
+  currentPathway = id;
+  pathwayStep = 0;
+  pathwayHistory = [];
+  pathwaySelections = {};
+  document.getElementById('landingPage').style.display = 'none';
+  document.getElementById('pathwayContainer').style.display = 'block';
+  renderStep();
+}
+
+function goBack() {
+  if (pathwayHistory.length > 0) {
+    var prev = pathwayHistory.pop();
+    pathwayStep = prev.step;
+    pathwaySelections = JSON.parse(JSON.stringify(prev.selections));
+    renderStep();
+  } else {
+    goHome();
+  }
+}
+
+function goHome() {
+  currentPathway = null;
+  pathwayStep = 0;
+  pathwayHistory = [];
+  pathwaySelections = {};
+  document.getElementById('landingPage').style.display = 'block';
+  document.getElementById('pathwayContainer').style.display = 'none';
+  window.scrollTo(0, 0);
+}
+
+function nextStep(step, selKey, selVal) {
+  pathwayHistory.push({step: pathwayStep, selections: JSON.parse(JSON.stringify(pathwaySelections))});
+  if (selKey) pathwaySelections[selKey] = selVal;
+  pathwayStep = step;
+  renderStep();
+  window.scrollTo(0, 0);
+}
+
+// Render progress bar
+function renderProgress(current, total, label) {
+  var pct = Math.round((current / total) * 100);
+  return `<div class="progress-bar">
+    <div class="progress-text">${label || 'Step ' + current + '/' + total}</div>
+    <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+  </div>`;
+}
+
+// Build calculator HTML
+function buildCalculator(data, calcId) {
+  var html = `<div class="calc-section" id="${calcId}">
+    <h3>${data.title}</h3>`;
+  data.categories.forEach(function(cat, ci) {
+    html += `<div class="calc-category">
+      <div class="calc-category-label">${cat.name}${cat.note ? ' <span style="font-weight:400;font-size:0.78rem;color:var(--grey-500);">' + cat.note + '</span>' : ''}</div>
+      <div class="option-group">`;
+    cat.options.forEach(function(opt, oi) {
+      html += `<button class="option-btn" onclick="selectCalcOption('${calcId}',${ci},${oi},${opt.score})" id="${calcId}_${ci}_${oi}">
+        ${opt.label} <span class="opt-score">${opt.score}</span>
+      </button>`;
+    });
+    html += `</div></div>`;
+  });
+  if (data.modifier) {
+    html += `<div class="calc-category">
+      <div class="calc-category-label">Modifier</div>
+      <div class="option-group">
+        <button class="option-btn" onclick="toggleCalcModifier('${calcId}',${data.modifier.score})" id="${calcId}_mod">
+          ${data.modifier.label} <span class="opt-score">+${data.modifier.score}</span>
+        </button>
+      </div>
+      <div style="font-size:0.78rem;color:var(--grey-500);margin-top:4px;">${data.modifier.note || ''}</div>
+    </div>`;
+  }
+  html += `<div class="calc-total"><span>Total Score</span><span class="total-score" id="${calcId}_total">0</span></div>
+    <div id="${calcId}_rec" class="calc-rec non-surgical" style="display:none;"></div>
+  </div>`;
+  return html;
+}
+
+// Calculator state
+var calcState = {};
+
+function selectCalcOption(calcId, catIdx, optIdx, score) {
+  if (!calcState[calcId]) calcState[calcId] = {cats: {}, mod: 0};
+  calcState[calcId].cats[catIdx] = {optIdx: optIdx, score: score};
+  // Update UI
+  var cats = document.querySelectorAll(`[id^="${calcId}_${catIdx}_"]`);
+  cats.forEach(function(b) { b.classList.remove('selected'); });
+  document.getElementById(`${calcId}_${catIdx}_${optIdx}`).classList.add('selected');
+  updateCalcTotal(calcId);
+}
+
+function toggleCalcModifier(calcId, score) {
+  if (!calcState[calcId]) calcState[calcId] = {cats: {}, mod: 0};
+  var btn = document.getElementById(calcId + '_mod');
+  if (calcState[calcId].mod > 0) {
+    calcState[calcId].mod = 0;
+    btn.classList.remove('selected');
+  } else {
+    calcState[calcId].mod = score;
+    btn.classList.add('selected');
+  }
+  updateCalcTotal(calcId);
+}
+
+function updateCalcTotal(calcId) {
+  if (!calcState[calcId]) return;
+  var total = calcState[calcId].mod || 0;
+  for (var k in calcState[calcId].cats) {
+    total += calcState[calcId].cats[k].score;
+  }
+  document.getElementById(calcId + '_total').textContent = total;
+  // Get interpretation
+  var data = calcId === 'slicsCalc' ? SLICS_DATA : (calcId === 'tlicsCalc' ? TLICS_DATA : SINS_DATA);
+  var interp = data.interpretation(total);
+  var recEl = document.getElementById(calcId + '_rec');
+  recEl.style.display = 'block';
+  recEl.className = 'calc-rec ' + interp.cls;
+  recEl.innerHTML = '<strong>' + total + ' points:</strong> ' + interp.text + '<div style="font-size:0.7rem;color:var(--grey-400);margin-top:6px;font-style:italic;">Scoring guidance only. Verify against local protocols.</div>';
+}
+
+// Image modal
+function openModal(src) {
+  var modal = document.getElementById('imgModal');
+  document.getElementById('modalImg').src = src;
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('imgModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ============================================================
+// PATHWAY RENDERERS
+// ============================================================
+
+function renderStep() {
+  var container = document.getElementById('pathwayContainer');
+  var html = '';
+
+  switch(currentPathway) {
+    case 'centralCord': html = renderCentralCord(); break;
+    case 'ces': html = renderCES(); break;
+    case 'trauma': html = renderTrauma(); break;
+    case 'malignancy': html = renderMalignancy(); break;
+    case 'infection': html = renderInfection(); break;
+    case 'neurogenicShock': html = renderNeurogenicShock(); break;
+  }
+
+  container.innerHTML = html;
+
+  // Re-init calculator state after render
+  if (container.querySelector('.calc-section')) {
+    calcState = {};
+  }
+}
+
+// --- CENTRAL CORD ---
+function renderCentralCord() {
+  var totalSteps = 3;
+  var nav = `<div class="nav-buttons"><button class="btn btn-back" onclick="goBack()">&#8592; Back</button><button class="btn btn-danger" onclick="goHome()">Start Over</button></div>`;
+
+  if (pathwayStep === 0) {
+    return renderProgress(1, totalSteps, 'Central Cord') +
+    `<div class="step-card">
+      <h2>Acute Central Cord Injury with Pre-existing Cervical Spondylosis</h2>
+      <p>Typical presentation in older patients following low-energy extension trauma (e.g., fall from ground level) to a pre-existing stenotic cervical canal, <strong>without significant fractures or instability</strong>.</p>
+      <h3>Clinical Features</h3>
+      <ul class="content-list">
+        <li>Upper limb weakness (greater than lower limb)</li>
+        <li>Altered sensation</li>
+        <li>Variable bladder dysfunction</li>
+      </ul>
+      <div class="info-box"><strong>MRI findings</strong> may report "cord compression," "cord oedema," and "myelomalacia" \u2014 these can be alarming but historically these injuries are managed conservatively. ${refLink([2,3])}</div>
+      <p>Does this patient match the typical central cord presentation?</p>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(1,'match','typical')">Yes \u2014 typical presentation (no significant fracture/instability)</button>
+        <button class="option-btn" onclick="nextStep(2,'match','atypical')">No \u2014 significant fracture or instability present</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 1) {
+    return renderProgress(2, totalSteps, 'Central Cord') +
+    `<div class="step-card">
+      <h2>Evidence on Surgical Timing</h2>
+      <p>Some authors suggest early decompression ${refLink([4,5])}, but these recommendations are based on <strong>low-quality evidence</strong>. ${refLink(6)}</p>
+      <p>The definition of "early" surgery varies widely: from &lt;8 hours to 4 days post-injury. ${refLink(6)}</p>
+      <div class="info-box">Studies comparing early to delayed surgery show <strong>no significant difference</strong> in neurological and functional recovery, ICU stay length, or mortality. ${refLink([7,8])}<br><br>Some evidence suggests delayed surgery may be associated with <strong>lower mortality</strong>. ${refLink(9)}</div>
+      <p><strong>77% of patients achieve full motor recovery</strong>, typically within the first 3 weeks. ${refLink(3)}</p>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(10,'timing','conservative')">View Recommendation</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 2) {
+    return renderProgress(2, totalSteps, 'Central Cord') +
+    `<div class="step-card">
+      <h2>Atypical Presentation</h2>
+      <p>If significant fractures or instability are present, this should be managed as a <strong>Trauma</strong> case with SLICS scoring.</p>
+      <div class="option-group">
+        <button class="btn btn-primary btn-block" onclick="goHome();setTimeout(function(){startPathway('trauma');},100);">Go to Trauma Pathway (SLICS/TLICS)</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 10) {
+    return renderProgress(3, totalSteps, 'Central Cord') +
+    `<div class="result-card">
+      <div class="rec-label">Recommended Management</div>
+      <div class="rec-text">Conservative Management</div>
+      <p style="font-size:0.88rem;color:var(--grey-700);">No urgency for same-night surgery. Consider elective decompression if clinically indicated.</p>
+      <ul class="content-list">
+        <li>77% full motor recovery within 3 weeks ${refLink(3)}</li>
+        <li>No significant difference between early vs delayed surgical outcomes ${refLink([7,8])}</li>
+        <li>Delayed surgery may have lower mortality ${refLink(9)}</li>
+      </ul>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Central Cord Injury with pre-existing cervical spondylosis</div>
+      <div class="path-step">Typical presentation: no significant fracture/instability</div>
+      <div class="path-step">Evidence supports conservative management</div>
+      <div class="path-step">Recommendation: Conservative management</div>
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+  return '';
+}
+
+// --- CES ---
+function renderCES() {
+  var totalSteps = 4;
+  var nav = `<div class="nav-buttons"><button class="btn btn-back" onclick="goBack()">&#8592; Back</button><button class="btn btn-danger" onclick="goHome()">Start Over</button></div>`;
+
+  if (pathwayStep === 0) {
+    return renderProgress(1, totalSteps, 'Cauda Equina') +
+    `<div class="step-card">
+      <h2>Cauda Equina Syndrome \u2014 Clinical Diagnosis</h2>
+      <p>CES is primarily a <strong>clinical diagnosis</strong>, not solely based on radiological findings. ${refLink(11)}</p>
+      <p>CES results from dysfunction of sacral nerve roots (S2 and below). <strong>At least one</strong> of the following must be present: ${refLink(11)}</p>
+      <ul class="content-list">
+        <li>Bladder and/or bowel dysfunction</li>
+        <li>Reduced sensation in the saddle area</li>
+        <li>Sexual dysfunction</li>
+      </ul>
+      <div class="info-box">Back and leg pain, along with motor/sensory changes in the lower limbs, are common but <strong>not essential</strong> for diagnosis. MRI is needed to confirm nerve root compression.</div>
+      <p>Does the patient meet CES clinical criteria?</p>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(1,'dx','confirmed')">Yes \u2014 clinical criteria met</button>
+        <button class="option-btn" onclick="nextStep(5,'dx','suspicious')">Suspicious but uncertain (CESS)</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 1) {
+    return renderProgress(2, totalSteps, 'Cauda Equina') +
+    `<div class="step-card">
+      <h2>Classify CES Type ${refLink(12)}</h2>
+      <table class="data-table">
+        <thead><tr><th>Feature</th><th>CES-I (Incomplete)</th><th>CES-R (Retention)</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Bladder</strong></td><td>Urinary issues: loss of desire to void, altered sensation, hesitancy</td><td>Painless urinary retention with overflow incontinence</td></tr>
+          <tr><td><strong>Saddle sensation</strong></td><td>Partial saddle anaesthesia</td><td>Complete perianal sensory loss</td></tr>
+          <tr><td><strong>Anal tone</strong></td><td>Reduced</td><td>Faecal incontinence</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:12px;font-weight:600;">Which pattern best matches?</p>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(2,'cesType','CES-I')">CES-I (Incomplete) \u2014 altered but not absent function</button>
+        <button class="option-btn" onclick="nextStep(3,'cesType','CES-R')">CES-R (Retention) \u2014 painless retention, complete sensory loss</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 2) {
+    return renderProgress(3, totalSteps, 'Cauda Equina') +
+    `<div class="result-card urgent-result">
+      <div class="rec-label">CES-I \u2014 Timing Recommendation</div>
+      <div class="rec-text">Prompt Surgery Recommended</div>
+      <p style="font-size:0.88rem;color:var(--grey-700);">Prompt surgery is recommended to <strong>prevent progression from CES-I to CES-R</strong>. ${refLink(13)}</p>
+      <ul class="content-list">
+        <li>Surgery within 48 hours improves sensory, motor, urinary, and rectal function ${refLink(14)}</li>
+        <li>No significant advantage of &lt;24h vs 24\u201348h window ${refLink(14)}</li>
+        <li>Outcomes are generally more favourable for CES-I than CES-R ${refLink(10)}</li>
+      </ul>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Cauda Equina Syndrome confirmed clinically</div>
+      <div class="path-step">Classified as CES-I (Incomplete)</div>
+      <div class="path-step">Recommendation: Prompt surgery within 48 hours</div>
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+
+  if (pathwayStep === 3) {
+    return renderProgress(3, totalSteps, 'Cauda Equina') +
+    `<div class="result-card">
+      <div class="rec-label">CES-R \u2014 Timing Recommendation</div>
+      <div class="rec-text">Surgery \u2014 Limited Emergent Benefit</div>
+      <p style="font-size:0.88rem;color:var(--grey-700);">Emergency surgery offers <strong>limited benefits</strong> for complete CES-R. ${refLink(13)}</p>
+      <ul class="content-list">
+        <li>Outcomes generally poorer than CES-I ${refLink(10)}</li>
+        <li>Surgery within 48 hours can still improve outcomes ${refLink(14)}</li>
+        <li>Consider surgery on next available list rather than emergent same-night operation</li>
+      </ul>
+      <div class="warning-box">
+        <div class="warn-title">Note</div>
+        Two additional rare categories exist: <strong>CESS</strong> (suspicious \u2014 bilateral radiculopathy without objective CES) and <strong>CESC</strong> (complete \u2014 loss of all cauda equina function).
+      </div>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Cauda Equina Syndrome confirmed clinically</div>
+      <div class="path-step">Classified as CES-R (Retention)</div>
+      <div class="path-step">Recommendation: Surgery (limited emergent benefit)</div>
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+
+  if (pathwayStep === 5) {
+    return renderProgress(2, totalSteps, 'Cauda Equina') +
+    `<div class="step-card">
+      <h2>CES Suspicious (CESS)</h2>
+      <p>CESS represents bilateral radiculopathy <strong>without objective evidence</strong> of CES. This is not a confirmed diagnosis of CES.</p>
+      <div class="warning-box">
+        <div class="warn-title">Recommendation</div>
+        Arrange urgent MRI to evaluate for nerve root compression. If MRI confirms significant compression with evolving clinical signs, reclassify as CES-I or CES-R.
+      </div>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(1,'dx','confirmed')">MRI confirms \u2014 reclassify as CES</button>
+        <button class="option-btn" onclick="goHome()">Not CES \u2014 return to home</button>
+      </div>
+    </div>` + nav;
+  }
+  return '';
+}
+
+// --- TRAUMA ---
+function renderTrauma() {
+  var totalSteps = 4;
+  var nav = `<div class="nav-buttons"><button class="btn btn-back" onclick="goBack()">&#8592; Back</button><button class="btn btn-danger" onclick="goHome()">Start Over</button></div>`;
+
+  if (pathwayStep === 0) {
+    return renderProgress(1, totalSteps, 'Trauma') +
+    `<div class="step-card">
+      <h2>Spinal Trauma \u2014 Select Region</h2>
+      <p>Two scoring systems guide surgical recommendations: ${refLink([15,16])}</p>
+      <p>Both use <strong>two radiological parameters</strong> (morphology + ligamentous integrity) and <strong>one clinical parameter</strong> (neurology).</p>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(1,'region','cervical')"><strong>Cervical (Subaxial)</strong> \u2014 Use SLICS</button>
+        <button class="option-btn" onclick="nextStep(2,'region','thoracolumbar')"><strong>Thoracolumbar</strong> \u2014 Use TLICS</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 1) {
+    return renderProgress(2, totalSteps, 'Trauma \u2014 SLICS') +
+    `<div class="step-card">
+      <h2>SLICS Calculator</h2>
+      <p>Score each category based on imaging and examination. ${refLink(15)}</p>
+    </div>` +
+    buildCalculator(SLICS_DATA, 'slicsCalc') +
+    `<div class="info-box" style="margin-top:12px;">
+      <strong>Timing guidance (STASCIS):</strong> Surgery within 24 hours of injury recommended. OR 2.83 (95% CI: 1.10\u20137.28) for \u22652 ASIA grade improvement at 6 months. ${refLink([15,16])}
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+
+  if (pathwayStep === 2) {
+    return renderProgress(2, totalSteps, 'Trauma \u2014 TLICS') +
+    `<div class="step-card">
+      <h2>TLICS Calculator</h2>
+      <p>Score each category based on imaging and examination.</p>
+    </div>` +
+    buildCalculator(TLICS_DATA, 'tlicsCalc') +
+    `<div class="info-box" style="margin-top:12px;">
+      <strong>Timing guidance (STASCIS):</strong> Surgery within 24 hours of injury recommended. AO Spine/Praxis also supports decompression within 24 hours to improve neurological outcomes. ${refLink([15,16])}
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+
+  return '';
+}
+
+// --- MALIGNANCY ---
+function renderMalignancy() {
+  var totalSteps = 5;
+  var nav = `<div class="nav-buttons"><button class="btn btn-back" onclick="goBack()">&#8592; Back</button><button class="btn btn-danger" onclick="goHome()">Start Over</button></div>`;
+
+  if (pathwayStep === 0) {
+    return renderProgress(1, totalSteps, 'Malignancy \u2014 NOMS') +
+    `<div class="step-card">
+      <h2>NOMS Framework \u2014 Step 1: Neurologic ${refLink(21)}</h2>
+      <p>Grade the degree of metastatic epidural spinal cord compression (MESCC) based on MRI T2 axial images at the site of greatest compression.</p>
+      <div class="info-box" style="cursor:pointer;" onclick="switchTab('reference');showRefSection('scores');setTimeout(function(){var collapsibles=document.querySelectorAll('#refContent .collapsible');collapsibles.forEach(function(c){var header=c.querySelector('.collapsible-header');if(header&&header.textContent.indexOf('ESCC')!==-1){c.classList.add('open');c.scrollIntoView({behavior:'smooth',block:'start'});}});},200);">
+        <strong>ESCC Grading:</strong> 0 = bone only &bull; 1a&ndash;1c = epidural impingement &bull; 2 = cord compression, CSF visible &bull; 3 = cord compression, no CSF<br>
+        <span style="font-size:0.78rem;color:var(--teal);">Tap for full ESCC grading table in Scoring Systems &rarr;</span>
+      </div>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(1,'neuro','low')"><strong>Low-grade ESCC</strong> (Grade 0 or 1) + No myelopathy</button>
+        <button class="option-btn" onclick="nextStep(1,'neuro','high')"><strong>High-grade ESCC</strong> (Grade 2 or 3) \u00b1 Myelopathy</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 1) {
+    return renderProgress(2, totalSteps, 'Malignancy \u2014 NOMS') +
+    `<div class="step-card">
+      <h2>NOMS Framework \u2014 Step 2: Oncologic ${refLink(21)}</h2>
+      <p>Classify tumour radiosensitivity based on response to conventional external beam radiotherapy (cEBRT).</p>
+      <div class="info-box"><strong>Radiosensitive:</strong> Lymphoma, myeloma, seminoma, breast, prostate, small cell lung, Ewing sarcoma<br><strong>Radioresistant:</strong> Renal cell, melanoma, sarcoma, NSCLC, hepatocellular, thyroid, colorectal</div>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(2,'onco','radiosensitive')">Radiosensitive</button>
+        <button class="option-btn" onclick="nextStep(2,'onco','radioresistant')">Radioresistant / previously irradiated</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 2) {
+    return renderProgress(3, totalSteps, 'Malignancy \u2014 NOMS') +
+    `<div class="step-card">
+      <h2>NOMS Framework \u2014 Step 3: Mechanical ${refLink(20)}</h2>
+      <p>Assess structural stability using the SINS score.</p>
+      ${buildCalculator(SINS_DATA, 'sinsCalc')}
+      <p style="margin-top:16px;font-weight:600;">Based on SINS assessment:</p>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(3,'mech','stable')">Stable (SINS 0\u20136)</button>
+        <button class="option-btn" onclick="nextStep(3,'mech','unstable')">Indeterminate or Unstable (SINS \u22657)</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 3) {
+    // Determine if we need systemic assessment
+    var needSystemic = (pathwaySelections.neuro === 'high' && pathwaySelections.onco === 'radioresistant');
+    if (needSystemic) {
+      return renderProgress(4, totalSteps, 'Malignancy \u2014 NOMS') +
+      `<div class="step-card">
+        <h2>NOMS Framework \u2014 Step 4: Systemic ${refLink(21)}</h2>
+        <p>Assess whether the patient can tolerate surgical intervention, considering tumour burden and comorbidities. ${refLink(22)}</p>
+        <div class="info-box">Surgery may be considered if effective pharmacotherapy is available post-operatively for systemic tumour control and if systemic progression is not rapid enough to hinder post-operative recovery.</div>
+        <div class="option-group">
+          <button class="option-btn" onclick="nextStep(10,'syst','able')">Able to tolerate surgery</button>
+          <button class="option-btn" onclick="nextStep(10,'syst','unable')">Unable to tolerate surgery</button>
+        </div>
+      </div>` + nav;
+    } else {
+      pathwaySelections.syst = '-';
+      // Skip to result
+      pathwayHistory.push({step: pathwayStep, selections: JSON.parse(JSON.stringify(pathwaySelections))});
+      pathwayStep = 10;
+      return renderMalignancy();
+    }
+  }
+
+  if (pathwayStep === 10) {
+    // Find matching NOMS decision
+    var neuro = pathwaySelections.neuro === 'low' ? 'Low-grade ESCC + No myelopathy' : 'High-grade ESCC \u00b1 Myelopathy';
+    var onco = pathwaySelections.onco === 'radiosensitive' ? 'Radiosensitive' : 'Radioresistant';
+    var mech = pathwaySelections.mech === 'stable' ? 'Stable' : 'Unstable';
+    var syst = pathwaySelections.syst === 'able' ? 'Able to tolerate surgery' : (pathwaySelections.syst === 'unable' ? 'Unable to tolerate surgery' : '-');
+
+    var decision = 'No matching recommendation found';
+    for (var i = 0; i < NOMS_MATRIX.length; i++) {
+      var r = NOMS_MATRIX[i];
+      if (r.neuro === neuro && r.onco === onco && r.mech === mech && (r.syst === syst || r.syst === '-')) {
+        decision = r.decision;
+        break;
+      }
+    }
+
+    var isSurgical = decision.toLowerCase().includes('decompression') || decision.toLowerCase().includes('stabilization');
+
+    return renderProgress(5, totalSteps, 'Malignancy \u2014 NOMS') +
+    `<div class="result-card ${isSurgical ? 'urgent-result' : ''}">
+      <div class="rec-label">NOMS Recommendation ${refLink(21)}</div>
+      <div class="rec-text">${decision}</div>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Neurologic: ${neuro}</div>
+      <div class="path-step">Oncologic: ${onco}</div>
+      <div class="path-step">Mechanical: ${mech}</div>
+      ${syst !== '-' ? '<div class="path-step">Systemic: ' + syst + '</div>' : ''}
+      <div class="path-step">Decision: ${decision}</div>
+    </div>
+    <div class="info-box" style="margin-top:12px;">
+      <strong>Key abbreviations:</strong> cEBRT = conventional external beam radiation therapy; SRS = stereotactic radiosurgery. Stabilization options include percutaneous cement augmentation, percutaneous pedicle screw instrumentation, and open instrumentation. ${refLink(49)}
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+  return '';
+}
+
+// --- INFECTION ---
+function renderInfection() {
+  var totalSteps = 3;
+  var nav = `<div class="nav-buttons"><button class="btn btn-back" onclick="goBack()">&#8592; Back</button><button class="btn btn-danger" onclick="goHome()">Start Over</button></div>`;
+
+  if (pathwayStep === 0) {
+    return renderProgress(1, totalSteps, 'Infection') +
+    `<div class="step-card">
+      <h2>Spinal Infection \u2014 Classification</h2>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(1,'type','pyogenic')"><strong>Pyogenic Infection</strong><br><span style="font-size:0.8rem;color:var(--grey-500);">Discitis, spondylitis, spondylodiscitis, epidural abscess</span></button>
+        <button class="option-btn" onclick="nextStep(2,'type','tb')"><strong>Tuberculous (TB) Infection</strong><br><span style="font-size:0.8rem;color:var(--grey-500);">Spinal tuberculosis</span></button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 1) {
+    return renderProgress(2, totalSteps, 'Infection \u2014 Pyogenic') +
+    `<div class="step-card">
+      <h2>Pyogenic Spinal Infection ${refLink([23,24])}</h2>
+      <p>Most cases can be managed <strong>non-operatively</strong> with systemic antibiotics after septic work-up and tissue biopsies.</p>
+      <h3>General Indications for Surgery</h3>
+      <ul class="content-list">
+        <li><strong>Spinal epidural abscess</strong></li>
+        <li><strong>Progressive neurological deficits</strong> (cord or cauda equina compression)</li>
+      </ul>
+      <h3>Relative Indications</h3>
+      <ul class="content-list">
+        <li>Uncertain diagnosis (surgically obtaining specimens)</li>
+        <li>Failed conservative treatment</li>
+        <li>Progressive spinal deformity with mechanical instability</li>
+      </ul>
+      <p style="margin-top:12px;">Does the patient have surgical indications?</p>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(10,'pyoSx','yes')">Yes \u2014 surgical indication present</button>
+        <button class="option-btn" onclick="nextStep(11,'pyoSx','no')">No \u2014 no surgical indication</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 2) {
+    return renderProgress(2, totalSteps, 'Infection \u2014 TB') +
+    `<div class="step-card">
+      <h2>Spinal Tuberculosis ${refLink([25,26])}</h2>
+      <p>Classified as <strong>complicated</strong> (instability, deformity, or neurological deficits) or <strong>uncomplicated</strong>.</p>
+      <p>Primary treatment: <strong>Anti-TB chemotherapy</strong> (even with cold abscess). ${refLink(26)}</p>
+      <h3>Surgical Drainage Only If:</h3>
+      <ul class="content-list">
+        <li>Respiratory distress ${refLink(27)}</li>
+        <li>Dysphagia from cervical paravertebral abscess</li>
+        <li>Large psoas abscess causing hip pseudo-flexion deformity ${refLink(28)}</li>
+      </ul>
+      <h3>Other Surgery Indications</h3>
+      <div style="margin:8px 0;"><strong>Chemotherapy factors:</strong></div>
+      <ul class="content-list">
+        <li>Lack of response to chemotherapy</li>
+        <li>Recurrence of infection</li>
+        <li>Severe weakness at presentation</li>
+        <li>Static or worsening neurological deficits despite chemotherapy</li>
+      </ul>
+      <div style="margin:8px 0;"><strong>Mechanical factors:</strong></div>
+      <ul class="content-list">
+        <li>Instability</li>
+        <li>Incapacitating pain</li>
+        <li>Deformities</li>
+      </ul>
+      <p style="margin-top:12px;">Does the patient have surgical indications?</p>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(12,'tbSx','yes')">Yes \u2014 surgical indication present</button>
+        <button class="option-btn" onclick="nextStep(13,'tbSx','no')">No \u2014 no surgical indication</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 10) {
+    return renderProgress(3, totalSteps, 'Infection \u2014 Pyogenic') +
+    `<div class="result-card urgent-result">
+      <div class="rec-label">Recommendation</div>
+      <div class="rec-text">Surgical Intervention Indicated</div>
+      <p style="font-size:0.88rem;">Proceed with surgical planning. Continue systemic antibiotics post-operatively. ${refLink([23,24])}</p>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Pyogenic spinal infection</div>
+      <div class="path-step">Surgical indication present</div>
+      <div class="path-step">Recommendation: Surgery + systemic antibiotics</div>
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+
+  if (pathwayStep === 11) {
+    return renderProgress(3, totalSteps, 'Infection \u2014 Pyogenic') +
+    `<div class="result-card">
+      <div class="rec-label">Recommendation</div>
+      <div class="rec-text">Conservative Management</div>
+      <p style="font-size:0.88rem;">Systemic antibiotics after septic work-up and tissue biopsies. ${refLink([23,24])}</p>
+      <p style="font-size:0.85rem;color:var(--grey-600);">Monitor for progression of neurological deficits or failure of conservative treatment, which would warrant surgical re-evaluation.</p>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Pyogenic spinal infection</div>
+      <div class="path-step">No surgical indication</div>
+      <div class="path-step">Recommendation: Conservative (antibiotics)</div>
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+
+  if (pathwayStep === 12) {
+    return renderProgress(3, totalSteps, 'Infection \u2014 TB') +
+    `<div class="result-card urgent-result">
+      <div class="rec-label">Recommendation</div>
+      <div class="rec-text">Surgery + Anti-TB Chemotherapy</div>
+      <p style="font-size:0.88rem;">Surgical intervention for the identified indication, in conjunction with anti-TB chemotherapy. ${refLink([26,28])}</p>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Spinal tuberculosis</div>
+      <div class="path-step">Surgical indication present</div>
+      <div class="path-step">Recommendation: Surgery + anti-TB chemotherapy</div>
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+
+  if (pathwayStep === 13) {
+    return renderProgress(3, totalSteps, 'Infection \u2014 TB') +
+    `<div class="result-card">
+      <div class="rec-label">Recommendation</div>
+      <div class="rec-text">Anti-TB Chemotherapy</div>
+      <p style="font-size:0.88rem;">Primary treatment with anti-TB chemotherapy. Even in cases with cold abscess, chemotherapy is generally sufficient. ${refLink(26)}</p>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Spinal tuberculosis</div>
+      <div class="path-step">No surgical indication</div>
+      <div class="path-step">Recommendation: Anti-TB chemotherapy</div>
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+  return '';
+}
+
+// --- NEUROGENIC SHOCK ---
+function renderNeurogenicShock() {
+  var totalSteps = 2;
+  var nav = `<div class="nav-buttons"><button class="btn btn-back" onclick="goBack()">&#8592; Back</button><button class="btn btn-danger" onclick="goHome()">Start Over</button></div>`;
+
+  if (pathwayStep === 0) {
+    return renderProgress(1, totalSteps, 'Neurogenic Shock') +
+    `<div class="step-card">
+      <h2>Neurogenic Shock ${refLink(17)}</h2>
+      <p>A distributive shock <strong>distinct from spinal shock</strong>.</p>
+      <h3>Key Features</h3>
+      <ul class="content-list">
+        <li><strong>Hypotension</strong></li>
+        <li><strong>Relative bradycardia</strong></li>
+        <li><strong>Peripheral vasodilatation</strong></li>
+      </ul>
+      <div class="danger-box">
+        <strong>Clinical dilemma:</strong> Hypotension reduces spinal cord blood flow, worsening ischaemia and potentially exacerbating secondary injury. The challenge is whether to decompress the cord while haemodynamically unstable, or to stabilise first.
+      </div>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(1,'dx','confirmed')">View Management Guidance</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 1) {
+    return renderProgress(2, totalSteps, 'Neurogenic Shock') +
+    `<div class="result-card">
+      <div class="rec-label">Management Guidance ${refLink(17)}</div>
+      <div class="rec-text">Haemodynamic Stabilisation as Priority</div>
+      <div class="warning-box">
+        <div class="warn-title">No Consensus in Literature</div>
+        There is currently no consensus on optimal timing of surgical decompression in haemodynamically unstable patients with spinal cord injury.
+      </div>
+      <h3 style="margin-top:16px;">Stabilisation Measures</h3>
+      <ul class="content-list">
+        <li>IV fluid resuscitation</li>
+        <li>Vasopressor support (noradrenaline preferred)</li>
+        <li>Atropine for significant bradycardia</li>
+        <li>Continuous haemodynamic monitoring</li>
+        <li>Maintain MAP \u226585 mmHg to optimise spinal cord perfusion</li>
+      </ul>
+      <h3>Integration with Timing Decisions</h3>
+      <p style="font-size:0.88rem;color:var(--grey-700);">Once haemodynamically stable, refer to the <strong>Trauma pathway</strong> (SLICS/TLICS) for surgical decision-making. STASCIS guidance supports surgery within 24 hours when feasible. ${refLink([15,16])}</p>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Neurogenic shock identified</div>
+      <div class="path-step">Priority: Haemodynamic stabilisation</div>
+      <div class="path-step">Once stable: Proceed to Trauma pathway for surgical decision</div>
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+  return '';
+}
+</script>

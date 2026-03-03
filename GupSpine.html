@@ -1,0 +1,2814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>GupSpine</title>
+<meta name="description" content="Emergency Spine Clinical Decision Support Tool">
+<style>
+:root {
+  --navy: #1a2332;
+  --navy-light: #243044;
+  --teal: #0891b2;
+  --teal-light: #06b6d4;
+  --blue: #2563eb;
+  --red: #dc2626;
+  --amber: #f59e0b;
+  --green: #16a34a;
+  --grey-50: #f8fafc;
+  --grey-100: #f1f5f9;
+  --grey-200: #e2e8f0;
+  --grey-300: #cbd5e1;
+  --grey-400: #94a3b8;
+  --grey-500: #64748b;
+  --grey-600: #475569;
+  --grey-700: #334155;
+  --grey-800: #1e293b;
+  --white: #ffffff;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+  --transition: 0.2s ease;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { font-size:16px; -webkit-text-size-adjust:100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--grey-50);
+  color: var(--grey-800);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+/* Header */
+.app-header {
+  background: var(--navy);
+  color: var(--white);
+  padding: 16px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-md);
+}
+.header-inner {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.app-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.app-subtitle {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+/* Tab navigation */
+.tab-bar {
+  display: flex;
+  background: var(--navy-light);
+  border-bottom: 2px solid var(--teal);
+}
+.tab-btn {
+  flex: 1;
+  padding: 12px 8px;
+  border: none;
+  background: transparent;
+  color: var(--grey-300);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+  position: relative;
+}
+.tab-btn.active {
+  color: var(--white);
+  background: rgba(8,145,178,0.15);
+}
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--teal-light);
+}
+.tab-btn:hover { color: var(--white); }
+/* Main container */
+.main-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 16px;
+}
+/* Disclaimer */
+.disclaimer {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-left: 4px solid var(--red);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: var(--radius);
+  color: var(--red);
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+/* Pathology cards */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+.path-card {
+  background: var(--white);
+  border: 1px solid var(--grey-200);
+  border-radius: var(--radius);
+  padding: 20px 16px;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+  box-shadow: var(--shadow);
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+.path-card:hover, .path-card:focus {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--teal);
+  transform: translateY(-2px);
+}
+.path-card:active { transform: translateY(0); }
+.path-card .card-icon {
+  font-size: 2rem;
+  display: block;
+}
+.path-card .card-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.3;
+}
+.path-card .card-desc {
+  font-size: 0.75rem;
+  color: var(--grey-500);
+}
+.path-card.urgent {
+  border-left: 4px solid var(--red);
+}
+.path-card.warning {
+  border-left: 4px solid var(--amber);
+}
+/* Pathway view */
+.pathway-view { display: none; }
+.pathway-view.active { display: block; }
+/* Progress bar */
+.progress-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 0;
+}
+.progress-bar .progress-track {
+  flex: 1;
+  height: 4px;
+  background: var(--grey-200);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-bar .progress-fill {
+  height: 100%;
+  background: var(--teal);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+.progress-bar .progress-text {
+  font-size: 0.75rem;
+  color: var(--grey-500);
+  white-space: nowrap;
+}
+/* Step card */
+.step-card {
+  background: var(--white);
+  border: 1px solid var(--grey-200);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+  animation: fadeIn 0.25s ease;
+}
+@keyframes fadeIn {
+  from { opacity:0; transform: translateY(8px); }
+  to { opacity:1; transform: translateY(0); }
+}
+.step-card h2 {
+  font-size: 1.1rem;
+  color: var(--navy);
+  margin-bottom: 12px;
+  line-height: 1.3;
+}
+.step-card h3 {
+  font-size: 1rem;
+  color: var(--navy);
+  margin: 16px 0 8px;
+}
+.step-card p {
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  color: var(--grey-700);
+}
+/* Option buttons */
+.option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+.option-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  background: var(--grey-50);
+  border: 2px solid var(--grey-200);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  color: var(--grey-800);
+  cursor: pointer;
+  transition: var(--transition);
+  line-height: 1.4;
+  -webkit-tap-highlight-color: transparent;
+}
+.option-btn:hover, .option-btn:focus {
+  border-color: var(--teal);
+  background: #f0fdfa;
+}
+.option-btn:active {
+  background: #ccfbf1;
+}
+.option-btn.selected {
+  border-color: var(--teal);
+  background: #f0fdfa;
+  font-weight: 600;
+}
+.option-btn .opt-score {
+  float: right;
+  color: var(--teal);
+  font-weight: 700;
+}
+/* Navigation buttons */
+.nav-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+.btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-primary {
+  background: var(--teal);
+  color: var(--white);
+  flex: 1;
+}
+.btn-primary:hover { background: #0e7490; }
+.btn-secondary {
+  background: var(--grey-200);
+  color: var(--grey-700);
+}
+.btn-secondary:hover { background: var(--grey-300); }
+.btn-back {
+  background: transparent;
+  color: var(--grey-500);
+  border: 1px solid var(--grey-300);
+}
+.btn-back:hover { background: var(--grey-100); }
+.btn-danger {
+  background: #fef2f2;
+  color: var(--red);
+  border: 1px solid #fecaca;
+}
+.btn-danger:hover { background: #fee2e2; }
+.btn-block { display:block; width:100%; }
+/* Result / endpoint card */
+.result-card {
+  background: #f0fdfa;
+  border: 2px solid var(--teal);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 16px 0;
+}
+.result-card.urgent-result {
+  background: #fef2f2;
+  border-color: var(--red);
+}
+.result-card h3 {
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+.result-card .rec-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--teal);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.result-card.urgent-result .rec-label { color: var(--red); }
+.result-card .rec-text {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 12px;
+}
+/* Summary path */
+.summary-path {
+  background: var(--grey-50);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin: 12px 0;
+  border: 1px solid var(--grey-200);
+}
+.summary-path .path-step {
+  font-size: 0.8rem;
+  color: var(--grey-600);
+  padding: 4px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.summary-path .path-step::before {
+  content: '\2192';
+  color: var(--teal);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+/* Calculator */
+.calc-section {
+  background: var(--white);
+  border: 1px solid var(--grey-200);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin: 12px 0;
+  box-shadow: var(--shadow);
+}
+.calc-section h3 {
+  font-size: 1rem;
+  color: var(--navy);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--grey-100);
+}
+.calc-category {
+  margin-bottom: 16px;
+}
+.calc-category-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--grey-700);
+  margin-bottom: 6px;
+}
+.calc-total {
+  background: var(--navy);
+  color: var(--white);
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  margin-top: 12px;
+}
+.calc-total .total-score {
+  font-size: 1.5rem;
+  color: var(--teal-light);
+}
+.calc-rec {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  margin-top: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.calc-rec.surgical { background: #fef2f2; color: var(--red); border: 1px solid #fecaca; }
+.calc-rec.non-surgical { background: #f0fdf4; color: var(--green); border: 1px solid #bbf7d0; }
+.calc-rec.equivocal { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+/* Warning box */
+.warning-box {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-left: 4px solid var(--amber);
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  margin: 12px 0;
+  font-size: 0.85rem;
+}
+.warning-box .warn-title {
+  font-weight: 700;
+  color: #92400e;
+  margin-bottom: 4px;
+}
+.danger-box {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-left: 4px solid var(--red);
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  margin: 12px 0;
+  font-size: 0.85rem;
+  color: #991b1b;
+}
+.info-box {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-left: 4px solid var(--blue);
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  margin: 12px 0;
+  font-size: 0.85rem;
+  color: #1e40af;
+}
+/* Grey info section (logistic) */
+.grey-info-section {
+  background: var(--grey-100);
+  border: 1px solid var(--grey-300);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin: 12px 0;
+  position: relative;
+}
+.grey-info-section .info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--grey-400);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: help;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.tooltip-text {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 16px;
+  right: 16px;
+  background: var(--grey-800);
+  color: white;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  font-size: 0.8rem;
+  z-index: 10;
+  margin-top: 4px;
+  box-shadow: var(--shadow-lg);
+}
+.grey-info-section:hover .tooltip-text,
+.grey-info-section:focus-within .tooltip-text {
+  display: block;
+}
+/* Collapsible sections */
+.collapsible {
+  border: 1px solid var(--grey-200);
+  border-radius: var(--radius);
+  margin: 8px 0;
+  overflow: hidden;
+}
+.collapsible-header {
+  padding: 14px 16px;
+  background: var(--white);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--navy);
+  -webkit-tap-highlight-color: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+.collapsible-header:hover { background: var(--grey-50); }
+.collapsible-header .chevron {
+  transition: transform 0.2s;
+  color: var(--grey-400);
+  font-size: 0.8rem;
+}
+.collapsible.open .collapsible-header .chevron {
+  transform: rotate(180deg);
+}
+.collapsible-body {
+  display: none;
+  padding: 0 16px 16px;
+  background: var(--white);
+}
+.collapsible.open .collapsible-body {
+  display: block;
+  animation: fadeIn 0.2s ease;
+}
+/* Reference sidebar navigation */
+.ref-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.ref-nav-btn {
+  padding: 8px 14px;
+  border: 1px solid var(--grey-300);
+  border-radius: 20px;
+  background: var(--white);
+  color: var(--grey-700);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+.ref-nav-btn:hover, .ref-nav-btn.active {
+  background: var(--teal);
+  color: var(--white);
+  border-color: var(--teal);
+}
+/* Tables */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin: 12px 0;
+}
+.data-table th {
+  background: var(--navy);
+  color: var(--white);
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+}
+.data-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--grey-200);
+  vertical-align: top;
+}
+.data-table tr:nth-child(even) { background: var(--grey-50); }
+.data-table tr:hover { background: #f0fdfa; }
+/* Thumbnail images */
+.thumb-container {
+  display: inline-block;
+  cursor: pointer;
+  border: 1px solid var(--grey-300);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: var(--transition);
+  margin: 8px 0;
+}
+.thumb-container:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--teal);
+}
+.thumb-container img {
+  display: block;
+  height: auto;
+}
+.thumb-container.compact img {
+  width: 100px;
+}
+/* Image modal */
+.img-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  cursor: pointer;
+}
+.img-modal.active {
+  display: flex;
+}
+.img-modal img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.img-modal .modal-close {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  color: white;
+  font-size: 2rem;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+  border: none;
+}
+/* Password overlay */
+.password-overlay {
+  text-align: center;
+  padding: 40px 20px;
+}
+.password-overlay input {
+  padding: 12px 16px;
+  border: 2px solid var(--grey-300);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  width: 100%;
+  max-width: 280px;
+  margin: 12px 0;
+  text-align: center;
+}
+.password-overlay input:focus {
+  outline: none;
+  border-color: var(--teal);
+}
+/* Ref links */
+a.ref-link {
+  color: var(--teal);
+  text-decoration: none;
+  font-size: 0.75rem;
+  vertical-align: super;
+  cursor: pointer;
+  font-weight: 600;
+}
+a.ref-link:hover { text-decoration: underline; }
+/* Steroid calculator */
+.steroid-calc {
+  background: var(--grey-50);
+  border: 1px solid var(--grey-200);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin: 12px 0;
+}
+.steroid-calc label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--grey-700);
+  margin-bottom: 4px;
+}
+.steroid-calc input[type="number"] {
+  padding: 10px 12px;
+  border: 2px solid var(--grey-300);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  width: 100%;
+  max-width: 200px;
+  margin-bottom: 12px;
+}
+.steroid-calc input:focus {
+  outline: none;
+  border-color: var(--teal);
+}
+.steroid-result {
+  background: var(--white);
+  border: 1px solid var(--grey-200);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-top: 8px;
+}
+.steroid-result .dose-line {
+  padding: 4px 0;
+  font-size: 0.85rem;
+}
+.steroid-result .dose-value {
+  font-weight: 700;
+  color: var(--navy);
+}
+/* Section header */
+.section-header {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--navy);
+  padding: 16px 0 8px;
+  border-bottom: 2px solid var(--teal);
+  margin-bottom: 12px;
+}
+/* Lists */
+.content-list {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+.content-list li {
+  font-size: 0.88rem;
+  margin-bottom: 6px;
+  color: var(--grey-700);
+  line-height: 1.5;
+}
+/* Attribution footer */
+.app-footer {
+  text-align: center;
+  padding: 24px 16px;
+  color: var(--grey-500);
+  font-size: 0.78rem;
+  border-top: 1px solid var(--grey-200);
+  margin-top: 32px;
+}
+.app-footer a {
+  color: var(--teal);
+  text-decoration: none;
+}
+.app-footer a:hover { text-decoration: underline; }
+/* Hide inactive tab content */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+/* Phone links */
+a.phone-link {
+  color: var(--teal);
+  text-decoration: none;
+  font-weight: 600;
+}
+a.phone-link:hover { text-decoration: underline; }
+/* Reference list */
+.ref-list-item {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--grey-100);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--grey-700);
+}
+.ref-list-item .ref-num {
+  font-weight: 700;
+  color: var(--navy);
+  margin-right: 6px;
+}
+/* Responsive */
+@media (max-width: 480px) {
+  .card-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .path-card { padding: 14px 10px; min-height: 100px; }
+  .path-card .card-icon { font-size: 1.6rem; }
+  .path-card .card-title { font-size: 0.82rem; }
+  .main-container { padding: 12px; }
+  .step-card { padding: 16px; }
+  .app-title { font-size: 1.2rem; }
+}
+@media (min-width: 768px) {
+  .card-grid { grid-template-columns: repeat(3, 1fr); }
+  .main-container { padding: 24px; }
+}
+/* ASIA chart thumbnail */
+.asia-chart-thumb {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: var(--grey-50, #f8f9fa);
+  border: 1.5px solid var(--teal, #2a7d8a);
+  border-radius: var(--radius, 12px);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  max-width: 340px;
+}
+.asia-chart-thumb:hover {
+  background: #e8f4f6;
+  box-shadow: 0 2px 8px rgba(42,125,138,0.15);
+}
+.asia-chart-icon { flex-shrink: 0; }
+.asia-chart-label { display: flex; flex-direction: column; gap: 2px; }
+.asia-chart-title { font-size: 0.82rem; font-weight: 600; color: var(--grey-800, #1a1a2e); line-height: 1.3; }
+.asia-chart-hint { font-size: 0.72rem; color: var(--teal, #2a7d8a); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<!-- Image Modal -->
+<div class="img-modal" id="imgModal" onclick="closeModal()">
+  <button class="modal-close" onclick="closeModal()">&times;</button>
+  <img id="modalImg" src="" alt="Full size image">
+</div>
+
+<!-- App Header -->
+<header class="app-header">
+  <div class="header-inner">
+    <div>
+      <div class="app-title">GupSpine</div>
+      <div class="app-subtitle">Emergency Spine Decision Support</div>
+    </div>
+  </div>
+</header>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('decision')" id="tabDecision">Decision Tool</button>
+  <button class="tab-btn" onclick="switchTab('reference')" id="tabReference">Reference</button>
+</div>
+
+<!-- DECISION TAB -->
+<div class="tab-content active" id="contentDecision">
+<div class="main-container">
+
+  <div class="disclaimer">Educational reference for clinicians only. Not for use by the general public as medical advice. No guarantee of completeness or currency. Verify against local policy/guidelines and current evidence. Clinical decisions remain the responsibility of the treating team.</div>
+
+  <!-- Landing page -->
+  <div id="landingPage">
+    <div style="font-size:0.85rem; color:var(--grey-600); margin-bottom:8px;">Select a pathology to begin guided decision support:</div>
+    <div class="card-grid">
+      <div class="path-card urgent" onclick="startPathway('centralCord')" tabindex="0" role="button">
+        <span class="card-icon">&#129516;</span>
+        <span class="card-title">Central Cord</span>
+        <span class="card-desc">Cervical spondylosis</span>
+      </div>
+      <div class="path-card urgent" onclick="startPathway('ces')" tabindex="0" role="button">
+        <span class="card-icon">&#9889;</span>
+        <span class="card-title">Cauda Equina</span>
+        <span class="card-desc">CES-I vs CES-R</span>
+      </div>
+      <div class="path-card urgent" onclick="startPathway('trauma')" tabindex="0" role="button">
+        <span class="card-icon">&#128680;</span>
+        <span class="card-title">Trauma</span>
+        <span class="card-desc">SLICS / TLICS</span>
+      </div>
+      <div class="path-card warning" onclick="startPathway('malignancy')" tabindex="0" role="button">
+        <span class="card-icon">&#127993;</span>
+        <span class="card-title">Malignancy</span>
+        <span class="card-desc">NOMS framework</span>
+      </div>
+      <div class="path-card warning" onclick="startPathway('infection')" tabindex="0" role="button">
+        <span class="card-icon">&#129440;</span>
+        <span class="card-title">Infection</span>
+        <span class="card-desc">Pyogenic / TB</span>
+      </div>
+      <div class="path-card" onclick="startPathway('neurogenicShock')" tabindex="0" role="button">
+        <span class="card-icon">&#128147;</span>
+        <span class="card-title">Neurogenic Shock</span>
+        <span class="card-desc">Haemodynamic</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pathway container (populated by JS) -->
+  <div id="pathwayContainer" style="display:none;"></div>
+
+</div>
+</div>
+
+<!-- REFERENCE TAB -->
+<div class="tab-content" id="contentReference">
+<div class="main-container">
+
+  <div class="disclaimer">Educational reference for clinicians only. Not for use by the general public as medical advice. No guarantee of completeness or currency. Verify against local policy/guidelines and current evidence. Clinical decisions remain the responsibility of the treating team.</div>
+
+  <div class="ref-nav" id="refNav">
+    <button class="ref-nav-btn active" onclick="showRefSection('workflow')">Workflow</button>
+    <button class="ref-nav-btn" onclick="showRefSection('timing')">Timing</button>
+    <button class="ref-nav-btn" onclick="showRefSection('assessment')">Assessment</button>
+    <button class="ref-nav-btn" onclick="showRefSection('steroids')">Corticosteroids</button>
+    <button class="ref-nav-btn" onclick="showRefSection('consent')">Consenting</button>
+    <button class="ref-nav-btn" onclick="showRefSection('theatre')">Theatre Prep</button>
+    <button class="ref-nav-btn" onclick="showRefSection('scores')">Scoring Systems</button>
+    <button class="ref-nav-btn" onclick="showRefSection('contacts')">Contacts</button>
+    <button class="ref-nav-btn" onclick="showRefSection('references')">Key References</button>
+  </div>
+
+  <div id="refContent"></div>
+
+</div>
+</div>
+
+<!-- Footer -->
+<footer class="app-footer">
+  <div>GupSpine &mdash; Emergency Spine Decision Support</div>
+  <div style="margin-top:8px;border-top:1px solid var(--grey-100);padding-top:8px;line-height:1.6;">
+    <div><strong>Author:</strong> <a href="https://drgeneleung.com" target="_blank" rel="noopener">Dr. Gene Leung</a></div>
+    <div><strong>Version:</strong> 1.0</div>
+    <div><strong>References reviewed:</strong> January 2024</div>
+    <div><strong>Last updated:</strong> 23 February 2026</div>
+    <div><strong>Project type:</strong> Independent educational reference tool</div>
+    <div style="margin-top:4px;font-style:italic;color:var(--grey-400);">Scope Note: General educational reference; local protocols vary by institution and jurisdiction.</div>
+  </div>
+</footer>
+
+<script>
+// Embedded image data
+const IMG = {};
+</script>
+<script>
+// ============================================================
+// CLINICAL DATA - Editable JSON structures
+// ============================================================
+
+const REFERENCES = [
+  {id:1, text:'Chan K, Chang Y, Cheng J, et al. Core Curriculum for Orthopaedic Training. 1999.'},
+  {id:2, text:'Schneider R, Thompson J, Jose B. The syndrome of acute central cervical spinal cord injury. J Neurol Neurosurg Psychiatry. 1958;21:216-227.'},
+  {id:3, text:'Ishida Y, Tominaga T. Predictors of neurologic recovery in acute central cervical cord injury with only upper extremity impairment. Spine (Phila Pa 1976). 2002;27:1652-1658.'},
+  {id:4, text:'Lenehan B, Fisher C, Vaccaro A, Fehlings M, Aarabi B, Dvorak M. The urgency of surgical decompression in acute central cord injuries with spondylosis and without instability. Spine. 2010;35:S180-6.'},
+  {id:5, text:'Fehlings M, Tetreault L, Wilson J, Aarabi B. A clinical practice guideline for the management of patients with acute spinal cord injury and central cord syndrome: recommendations on the timing of decompressive surgery. Global Spine J. 2017;195S-202S.'},
+  {id:6, text:'Divi SN, Schroeder GD, Mangan JJ, et al. Management of acute traumatic central cord syndrome: a narrative review. Global Spine J. 2019;89S-97S.'},
+  {id:7, text:'Park M, Moon S, Lee H. Delayed surgical intervention in central cord syndrome with cervical stenosis. Global Spine J. 2014;5:69-72.'},
+  {id:8, text:'Kepler C, Kong C, Schroeder G, et al. Early outcome and predictors of early outcome in patients treated surgically for central cord syndrome. J Neurosurg Spine. 2015;23:490-4.'},
+  {id:9, text:'Samuel A, Grant R, Bohl D, Basques B. Delayed surgery after acute traumatic central cord syndrome is associated with reduced mortality. Spine. 2015;40:349-56.'},
+  {id:10, text:'Srikandarajah N. Outcomes reported after surgery for cauda equina syndrome: a systematic literature review. Spine. 2018;43:1.'},
+  {id:11, text:'Lavy C, Marks P, Dangas K, Todd N. Cauda equina syndrome \u2014 a practical guide to definition and classification. Int Orthop. 2022;46:165-169.'},
+  {id:12, text:'Todd N, Dickson R. Standards of care in cauda equina syndrome. Br J Neurosurg. 2016;30:518-522.'},
+  {id:13, text:'Gleaves J, Macfarlane R. Cauda equina syndrome: what is the relationship between timing of surgery and outcome? Br J Neurosurg. 2002;16:325-328.'},
+  {id:14, text:'Ahn U, Ahn N, Buchowski J, Garret S, Sieber A, Kostuik J. Cauda equina syndrome secondary to lumbar disc herniation \u2014 a meta-analysis of surgical outcomes. Spine. 2000;25(12):1515-1522.'},
+  {id:15, text:'Fehlings MG, Vaccaro A, Wilson JR, Singh A. Early versus delayed decompression for traumatic cervical spinal cord injury: results of the Surgical Timing in Acute Spinal Cord Injury Study (STASCIS). PLoS One. 2012;7(2):e32037.'},
+  {id:16, text:'Kwon B, Tetreault L, Evaniew N, Skelly A, Fehlings M. AO Spine/Praxis clinical practice guidelines for the management of acute spinal cord injury. Global Spine J. 2024;14:5S-9S.'},
+  {id:17, text:'Tuli S, Tuli J, Coleman WP, Geisler FH, Krassioukov A. Hemodynamic parameters and timing of surgical decompression in acute cervical spinal cord injury. J Spinal Cord Med. 2007;30:482-90.'},
+  {id:18, text:'Tomita K, Kawahara N, Kobayashi T. Surgical strategy for spinal metastases. Spine. 2001:298-306.'},
+  {id:19, text:'Tokuhashi Y, Matsuzaki H, Oda H. A revised scoring system for preoperative evaluation of metastatic spine tumor prognosis. Spine. 2005:2186-91.'},
+  {id:20, text:'Fisher CG, DiPaola CP, Ryken TC, et al. A novel classification system for spinal instability in neoplastic disease. Spine. 2010;35:1221-9.'},
+  {id:21, text:'Laufer I, Rubin D, Lis E, et al. The NOMS framework: approach to the treatment of spinal metastatic tumors. Oncologist. 2013;18:744-51.'},
+  {id:22, text:'Pereira N, Janssen S, van Dijk E, Harris M. Development of a prognostic survival algorithm for patients with metastatic spine disease. J Bone Joint Surg Am. 2016;98:1767-1776.'},
+  {id:23, text:'Cheung W, Luk K. Pyogenic spondylitis. International Orthopaedics (SICOT). 2012;36:397-404.'},
+  {id:24, text:'Aljawadi A, Jahangir N, Jeelani A, et al. Management of pyogenic spinal infection, review of literature. Journal of Orthopaedics. 2016;16:508-512.'},
+  {id:25, text:'Su S, Tsai W, Lin C. Clinical features and outcomes of spinal tuberculosis in southern Taiwan. J Microbiol Immunol Infect. 2010:291-300.'},
+  {id:26, text:'Rajaskeran S. Spinal tuberculosis: current concepts. Global Spine Journal. 2018;8:96-108.'},
+  {id:27, text:'Bhargava SK, Gupta S. Large retropharyngeal cold abscess in an adult with respiratory distress. J Laryngol Otol. 1990:157-158.'},
+  {id:28, text:'Shetty A, Kanna R, Rajasekaran S. TB spine \u2014 current aspects on clinical presentation, diagnosis and management options. Semin Spine Surg. 2016:150.'},
+  {id:29, text:'Cortegiania A. Association between night/after-hours surgery and mortality: a systematic review and meta-analysis. British Journal of Anaesthesia. 2020.'},
+  {id:30, text:'ASIA and ISCoS International Standards Committee. The 2019 revision of the International Standards for Neurological Classification of Spinal Cord Injury (ISNCSCI) \u2014 What\'s new? Spinal Cord. 2019;57:815-817.'},
+  {id:31, text:'Evaniew N, Sharifi B, Waheed Z, et al. The influence of neurological examination timing within hours after acute traumatic spinal cord injuries. Spinal Cord. 2020;58:247-254.'},
+  {id:32, text:'Delamarter RB, Sherman J, Carr JB. Pathophysiology of spinal cord injury: recovery after immediate and delayed compression. J Bone Joint Surg Am. 1995;77:1042-1049.'},
+  {id:33, text:'Bracken MB, Shepard MJ, Holford TR, et al. Administration of methylprednisolone for 24 or 48 hours or tirilazad mesylate for 48 hours in the treatment of acute spinal cord injury (NASCIS III). JAMA. 1997;277:1597-1604.'},
+  {id:34, text:'Matsumoto T, Tamaki T, Kawakami M, et al. Early complications of high-dose methylprednisolone sodium succinate treatment in acute cervical spinal cord injury. Spine. 2001;26:426-430.'},
+  {id:35, text:'Pointillart V, Petitjean ME, Wiart L, et al. Pharmacological therapy of spinal cord injury during the acute phase. Spinal Cord. 2000;38:71-76.'},
+  {id:36, text:'Hurlbert RJ, Hadley MN, Walters BC. Pharmacological therapy for acute spinal cord injury. Neurosurgery. 2013;72:93-105.'},
+  {id:37, text:'Sciovoletto G, Tamberulla F, Laurenza L. Who is going to walk? A review of the factors influencing walking recovery after spinal cord injury. Front Hum Neurosci. 2014;8:141.'},
+  {id:38, text:'Fehlings MG, Wilson JR, Tetreault LA, et al. A clinical practice guideline for the management of patients with acute spinal cord injury: recommendations on the use of methylprednisolone sodium succinate. Global Spine J. 2017;7:203S-211S.'},
+  {id:39, text:'Kumar A, Weber MH, Gokaslan Z. Metastatic spinal cord compression and steroid treatment. Clin Spine Surg. 2017;30:156-63.'},
+  {id:40, text:'Waters RL, Adkins RH, Yakura JS. Definition of complete spinal cord injury. Paraplegia. 1991;29:573-581.'},
+  {id:41, text:'Marino RJ, Ditunno JF, Donovan WH. Neurologic recovery after traumatic spinal cord injury: data from the Model Spinal Cord Injury Systems. Arch Phys Med Rehabil. 1999;80:1391-1396.'},
+  {id:42, text:'van Middendorp JJ, Hosman AJF, Pouw MH. ASIA impairment scale conversion in traumatic SCI: is it related with the ability to walk? Spinal Cord. 2009;47:555-560.'},
+  {id:43, text:'Ditunno JF, Sipski ML, Posuniak EA. Wrist extensor recovery in traumatic quadriplegia. Arch Phys Med Rehabil. 1987;68:287-290.'},
+  {id:44, text:'Fawcett JW, Curt A, Steeves JD. Guidelines for the conduct of clinical trials for spinal cord injury as developed by the ICCP panel. Spinal Cord. 2007;45:190-205.'},
+  {id:45, text:'Waters RL, Adkins RH, Yakura JS. Donal Munro Lecture: Functional and neurologic recovery following acute SCI. J Spinal Cord Med. 1998;21:195-199.'},
+  {id:46, text:'Waters RL, Adkins RH, Yakura JS. Motor and sensory recovery following incomplete tetraplegia. Arch Phys Med Rehabil. 1994;75:306-311.'},
+  {id:47, text:'Todd NV, Burch NC. Informed consent in spinal surgery. Bone Joint J. 2019;101-B:355-360.'},
+  {id:48, text:'Ng ALC, McRobb LS, White SJ, et al. Consent for spine surgery: an observational study. ANZ Journal of Surgery. 2021;91:1220-1225.'},
+  {id:49, text:'Li RF. Separation surgery in the treatment of spinal metastases. Technology in Cancer Research & Treatment. 2022.'},
+  {id:50, text:'Ahluwalia K. McCulloch v Forth Valley Health Board [2023]: clarification by the UK Supreme Court on a medical practitioner\'s responsibilities and obligations to inform patients of reasonable alternative or variant treatments. 2024.'},
+  {id:51, text:'Ahuja CW, Nori S, Kotter MRN, et al. Traumatic spinal cord injury. Nat Rev Dis Prim. 2017;3:1-21.'},
+  {id:52, text:'Batchelor PE, Wills TE, Skeers P, et al. Meta-analysis of pre-clinical studies of early decompression in acute spinal cord injury: a battle of time and pressure. PLoS ONE. 2013;8:e72659.'}
+];
+
+function refLink(ids) {
+  if (!Array.isArray(ids)) ids = [ids];
+  return ids.map(id => `<a class="ref-link" href="#" onclick="event.preventDefault();showRefSection('references');scrollToRef(${id});" title="Reference ${id}">${id}</a>`).join(',');
+}
+
+// SLICS scoring data
+const SLICS_DATA = {
+  title: "SLICS (Subaxial Cervical Injury Classification)",
+  categories: [
+    {
+      name: "Injury Morphology",
+      options: [
+        {label: "No abnormality", score: 0},
+        {label: "Compression", score: 1},
+        {label: "Burst", score: 2},
+        {label: "Distraction", score: 3},
+        {label: "Rotation/Translation", score: 4}
+      ]
+    },
+    {
+      name: "Discoligamentous Complex (DLC)",
+      options: [
+        {label: "Intact", score: 0},
+        {label: "Suspected disruption", score: 1},
+        {label: "Disruption", score: 2}
+      ]
+    },
+    {
+      name: "Neurological Status",
+      options: [
+        {label: "Intact", score: 0},
+        {label: "Nerve root injury", score: 1},
+        {label: "Complete cord injury", score: 2},
+        {label: "Incomplete cord injury", score: 3}
+      ]
+    }
+  ],
+  modifier: {label: "Persistent cord compression", score: 1, note: "Add +1 if continuous cord compression with neurologic deficit"},
+  interpretation: function(score) {
+    if (score <= 3) return {text: "Non-surgical management", cls: "non-surgical"};
+    if (score === 4) return {text: "Surgical or non-surgical (surgeon's discretion)", cls: "equivocal"};
+    return {text: "Surgical management recommended", cls: "surgical"};
+  }
+};
+
+// TLICS scoring data
+const TLICS_DATA = {
+  title: "TLICS (Thoracolumbar Injury Classification)",
+  categories: [
+    {
+      name: "Injury Morphology",
+      options: [
+        {label: "No abnormality", score: 0},
+        {label: "Compression", score: 1},
+        {label: "Burst", score: 2},
+        {label: "Translation/Rotation", score: 3},
+        {label: "Distraction", score: 4}
+      ]
+    },
+    {
+      name: "Posterior Ligamentous Complex (PLC)",
+      options: [
+        {label: "Intact", score: 0},
+        {label: "Suspected injury", score: 2},
+        {label: "Injured", score: 3}
+      ]
+    },
+    {
+      name: "Neurological Status",
+      options: [
+        {label: "Intact", score: 0},
+        {label: "Nerve root injury", score: 2},
+        {label: "Complete cord injury", score: 2},
+        {label: "Incomplete cord injury", score: 3},
+        {label: "Cauda equina syndrome", score: 3}
+      ]
+    }
+  ],
+  interpretation: function(score) {
+    if (score <= 3) return {text: "Non-surgical management", cls: "non-surgical"};
+    if (score === 4) return {text: "Surgeon's choice (surgical or non-surgical)", cls: "equivocal"};
+    return {text: "Surgical management recommended", cls: "surgical"};
+  }
+};
+
+// SINS scoring data
+const SINS_DATA = {
+  title: "SINS (Spinal Instability Neoplastic Score)",
+  categories: [
+    {
+      name: "Location",
+      options: [
+        {label: "Junctional (occiput\u2013C2, C7\u2013T2, T11\u2013L1, L5\u2013S1)", score: 3},
+        {label: "Mobile spine (C3\u2013C6, L2\u2013L4)", score: 2},
+        {label: "Semirigid (T3\u2013T10)", score: 1},
+        {label: "Rigid (S2\u2013S5)", score: 0}
+      ]
+    },
+    {
+      name: "Pain",
+      note: "*Mechanical: pain improvement with recumbency and/or pain with movement/loading",
+      options: [
+        {label: "Mechanical pain*", score: 3},
+        {label: "Occasional pain, not mechanical", score: 1},
+        {label: "Pain-free lesion", score: 0}
+      ]
+    },
+    {
+      name: "Bone Lesion",
+      options: [
+        {label: "Lytic", score: 2},
+        {label: "Mixed (lytic/blastic)", score: 1},
+        {label: "Blastic", score: 0}
+      ]
+    },
+    {
+      name: "Radiographic Spinal Alignment",
+      options: [
+        {label: "Subluxation/translation present", score: 4},
+        {label: "De novo deformity (kyphosis/scoliosis)", score: 2},
+        {label: "Normal alignment", score: 0}
+      ]
+    },
+    {
+      name: "Vertebral Body Collapse",
+      options: [
+        {label: "> 50% collapse", score: 3},
+        {label: "< 50% collapse", score: 2},
+        {label: "No collapse with > 50% body involved", score: 1},
+        {label: "None of the above", score: 0}
+      ]
+    },
+    {
+      name: "Posterolateral Involvement of Spinal Elements",
+      note: "\u2020Facet, pedicle, or costovertebral joint fracture or replacement with tumor",
+      options: [
+        {label: "Bilateral\u2020", score: 3},
+        {label: "Unilateral\u2020", score: 1},
+        {label: "None of the above", score: 0}
+      ]
+    }
+  ],
+  interpretation: function(score) {
+    if (score <= 6) return {text: "Stable \u2014 conservative management appropriate", cls: "non-surgical"};
+    if (score <= 12) return {text: "Indeterminate stability \u2014 consider surgical consultation", cls: "equivocal"};
+    return {text: "Unstable \u2014 surgical intervention recommended", cls: "surgical"};
+  }
+};
+
+// NOMS decision matrix
+const NOMS_MATRIX = [
+  {neuro:"Low-grade ESCC + No myelopathy", onco:"Radiosensitive", mech:"Stable", syst:"-", decision:"cEBRT"},
+  {neuro:"Low-grade ESCC + No myelopathy", onco:"Radiosensitive", mech:"Unstable", syst:"-", decision:"Stabilization followed by cEBRT"},
+  {neuro:"Low-grade ESCC + No myelopathy", onco:"Radioresistant", mech:"Stable", syst:"-", decision:"SRS"},
+  {neuro:"Low-grade ESCC + No myelopathy", onco:"Radioresistant", mech:"Unstable", syst:"-", decision:"Stabilization followed by SRS"},
+  {neuro:"High-grade ESCC \u00b1 Myelopathy", onco:"Radiosensitive", mech:"Stable", syst:"-", decision:"cEBRT"},
+  {neuro:"High-grade ESCC \u00b1 Myelopathy", onco:"Radiosensitive", mech:"Unstable", syst:"-", decision:"Stabilization followed by cEBRT"},
+  {neuro:"High-grade ESCC \u00b1 Myelopathy", onco:"Radioresistant", mech:"Stable", syst:"Able to tolerate surgery", decision:"Decompression/stabilization followed by SRS"},
+  {neuro:"High-grade ESCC \u00b1 Myelopathy", onco:"Radioresistant", mech:"Stable", syst:"Unable to tolerate surgery", decision:"cEBRT"},
+  {neuro:"High-grade ESCC \u00b1 Myelopathy", onco:"Radioresistant", mech:"Unstable", syst:"Able to tolerate surgery", decision:"Decompression/stabilization followed by SRS"},
+  {neuro:"High-grade ESCC \u00b1 Myelopathy", onco:"Radioresistant", mech:"Unstable", syst:"Unable to tolerate surgery", decision:"Stabilization followed by cEBRT"}
+];
+
+// Surgical risk comparison table data
+const SURGICAL_RISKS = [
+  {risk:"Overall complications", terminology:"General risks of surgery", rates:"12.7% (Li et al., 2008)"},
+  {risk:"Bleeding/transfusion", terminology:"", rates:"0.7% (0.2\u20131.1%) (Shriver et al., 2015)"},
+  {risk:"Infection", terminology:"", rates:"0.3% (Li et al., 2008); 4.9% (1.5\u20136.0%) (Shriver et al., 2015); 1\u20139% (Akaoro and Onya, 2015)"},
+  {risk:"Durotomy", terminology:"CSF leak, spinal fluid leak", rates:"1.2% (0.5\u20131.7%) (Shriver et al., 2015); 0.7% (Li et al., 2008)"},
+  {risk:"Neurological deficit", terminology:"Nerve damage, paralysis, weakness, numbness", rates:"<1%, 1/1000"},
+  {risk:"Bowel/bladder dysfunction", terminology:"", rates:"4.8% (2.7\u20136.1%) (Shriver et al., 2015)"},
+  {risk:"Recurrence", terminology:"", rates:"1.8% of all patients; higher for spondylolisthesis 9.3%, or open laminectomy 4.1% (Guha et al., 2015)"},
+  {risk:"Future need for fusion (delayed instability)", terminology:"", rates:"<1%, 20%"},
+  {risk:"Adjacent segment disease", terminology:"", rates:"<1%, 20%"},
+  {risk:"Anaesthetic risk / Death", terminology:"", rates:"0.3\u20130.5%, 0.17% (Li et al., 2008)"},
+  {risk:"Blood clots (DVT)", terminology:"Blood clots", rates:"0.4% (Li et al., 2008)"}
+];
+
+// CES comparison
+const CES_COMPARISON = {
+  headers: ["Feature", "CES-I (Incomplete)", "CES-R (Retention)"],
+  rows: [
+    ["Back/leg pain", "Lumbar +/- leg pain", "Lumbar +/- leg pain"],
+    ["Motor/sensory", "Motor or sensory deficit in lower limbs", "Motor or sensory deficit in lower limbs"],
+    ["Bladder function", "Urinary issues of neurogenic origin including loss of desire to void, altered urinary sensation, and hesitancy", "Painless urinary retention with overflow incontinence"],
+    ["Saddle sensation", "Partial saddle anaesthesia", "Complete perianal sensory loss"],
+    ["Anal tone", "Anal sphincter tone reduced", "Faecal incontinence"]
+  ]
+};
+</script>
+<script>
+// ============================================================
+// APP LOGIC
+// ============================================================
+
+// Subtle disclaimer for all recommendation outputs
+const PATHWAY_DISCLAIMER = '<p style="font-size:0.72rem;color:var(--grey-400);margin-top:12px;font-style:italic;">Educational reference only. Verify against local guidelines. Clinical decisions remain the responsibility of the treating team.</p>';
+
+// State
+let currentTab = 'decision';
+let currentPathway = null;
+let pathwayStep = 0;
+let pathwayHistory = [];
+let pathwaySelections = {};
+let contactsUnlocked = false;
+
+// Tab switching
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  document.getElementById('content' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  if (tab === 'reference') {
+    showRefSection('workflow');
+  }
+  window.scrollTo(0, 0);
+}
+
+// Pathway management
+function startPathway(id) {
+  currentPathway = id;
+  pathwayStep = 0;
+  pathwayHistory = [];
+  pathwaySelections = {};
+  document.getElementById('landingPage').style.display = 'none';
+  document.getElementById('pathwayContainer').style.display = 'block';
+  renderStep();
+}
+
+function goBack() {
+  if (pathwayHistory.length > 0) {
+    var prev = pathwayHistory.pop();
+    pathwayStep = prev.step;
+    pathwaySelections = JSON.parse(JSON.stringify(prev.selections));
+    renderStep();
+  } else {
+    goHome();
+  }
+}
+
+function goHome() {
+  currentPathway = null;
+  pathwayStep = 0;
+  pathwayHistory = [];
+  pathwaySelections = {};
+  document.getElementById('landingPage').style.display = 'block';
+  document.getElementById('pathwayContainer').style.display = 'none';
+  window.scrollTo(0, 0);
+}
+
+function nextStep(step, selKey, selVal) {
+  pathwayHistory.push({step: pathwayStep, selections: JSON.parse(JSON.stringify(pathwaySelections))});
+  if (selKey) pathwaySelections[selKey] = selVal;
+  pathwayStep = step;
+  renderStep();
+  window.scrollTo(0, 0);
+}
+
+// Render progress bar
+function renderProgress(current, total, label) {
+  var pct = Math.round((current / total) * 100);
+  return `<div class="progress-bar">
+    <div class="progress-text">${label || 'Step ' + current + '/' + total}</div>
+    <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+  </div>`;
+}
+
+// Build calculator HTML
+function buildCalculator(data, calcId) {
+  var html = `<div class="calc-section" id="${calcId}">
+    <h3>${data.title}</h3>`;
+  data.categories.forEach(function(cat, ci) {
+    html += `<div class="calc-category">
+      <div class="calc-category-label">${cat.name}${cat.note ? ' <span style="font-weight:400;font-size:0.78rem;color:var(--grey-500);">' + cat.note + '</span>' : ''}</div>
+      <div class="option-group">`;
+    cat.options.forEach(function(opt, oi) {
+      html += `<button class="option-btn" onclick="selectCalcOption('${calcId}',${ci},${oi},${opt.score})" id="${calcId}_${ci}_${oi}">
+        ${opt.label} <span class="opt-score">${opt.score}</span>
+      </button>`;
+    });
+    html += `</div></div>`;
+  });
+  if (data.modifier) {
+    html += `<div class="calc-category">
+      <div class="calc-category-label">Modifier</div>
+      <div class="option-group">
+        <button class="option-btn" onclick="toggleCalcModifier('${calcId}',${data.modifier.score})" id="${calcId}_mod">
+          ${data.modifier.label} <span class="opt-score">+${data.modifier.score}</span>
+        </button>
+      </div>
+      <div style="font-size:0.78rem;color:var(--grey-500);margin-top:4px;">${data.modifier.note || ''}</div>
+    </div>`;
+  }
+  html += `<div class="calc-total"><span>Total Score</span><span class="total-score" id="${calcId}_total">0</span></div>
+    <div id="${calcId}_rec" class="calc-rec non-surgical" style="display:none;"></div>
+  </div>`;
+  return html;
+}
+
+// Calculator state
+var calcState = {};
+
+function selectCalcOption(calcId, catIdx, optIdx, score) {
+  if (!calcState[calcId]) calcState[calcId] = {cats: {}, mod: 0};
+  calcState[calcId].cats[catIdx] = {optIdx: optIdx, score: score};
+  // Update UI
+  var cats = document.querySelectorAll(`[id^="${calcId}_${catIdx}_"]`);
+  cats.forEach(function(b) { b.classList.remove('selected'); });
+  document.getElementById(`${calcId}_${catIdx}_${optIdx}`).classList.add('selected');
+  updateCalcTotal(calcId);
+}
+
+function toggleCalcModifier(calcId, score) {
+  if (!calcState[calcId]) calcState[calcId] = {cats: {}, mod: 0};
+  var btn = document.getElementById(calcId + '_mod');
+  if (calcState[calcId].mod > 0) {
+    calcState[calcId].mod = 0;
+    btn.classList.remove('selected');
+  } else {
+    calcState[calcId].mod = score;
+    btn.classList.add('selected');
+  }
+  updateCalcTotal(calcId);
+}
+
+function updateCalcTotal(calcId) {
+  if (!calcState[calcId]) return;
+  var total = calcState[calcId].mod || 0;
+  for (var k in calcState[calcId].cats) {
+    total += calcState[calcId].cats[k].score;
+  }
+  document.getElementById(calcId + '_total').textContent = total;
+  // Get interpretation
+  var data = calcId === 'slicsCalc' ? SLICS_DATA : (calcId === 'tlicsCalc' ? TLICS_DATA : SINS_DATA);
+  var interp = data.interpretation(total);
+  var recEl = document.getElementById(calcId + '_rec');
+  recEl.style.display = 'block';
+  recEl.className = 'calc-rec ' + interp.cls;
+  recEl.innerHTML = '<strong>' + total + ' points:</strong> ' + interp.text + '<div style="font-size:0.7rem;color:var(--grey-400);margin-top:6px;font-style:italic;">Scoring guidance only. Verify against local protocols.</div>';
+}
+
+// Image modal
+function openModal(src) {
+  var modal = document.getElementById('imgModal');
+  document.getElementById('modalImg').src = src;
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('imgModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ============================================================
+// PATHWAY RENDERERS
+// ============================================================
+
+function renderStep() {
+  var container = document.getElementById('pathwayContainer');
+  var html = '';
+
+  switch(currentPathway) {
+    case 'centralCord': html = renderCentralCord(); break;
+    case 'ces': html = renderCES(); break;
+    case 'trauma': html = renderTrauma(); break;
+    case 'malignancy': html = renderMalignancy(); break;
+    case 'infection': html = renderInfection(); break;
+    case 'neurogenicShock': html = renderNeurogenicShock(); break;
+  }
+
+  container.innerHTML = html;
+
+  // Re-init calculator state after render
+  if (container.querySelector('.calc-section')) {
+    calcState = {};
+  }
+}
+
+// --- CENTRAL CORD ---
+function renderCentralCord() {
+  var totalSteps = 3;
+  var nav = `<div class="nav-buttons"><button class="btn btn-back" onclick="goBack()">&#8592; Back</button><button class="btn btn-danger" onclick="goHome()">Start Over</button></div>`;
+
+  if (pathwayStep === 0) {
+    return renderProgress(1, totalSteps, 'Central Cord') +
+    `<div class="step-card">
+      <h2>Acute Central Cord Injury with Pre-existing Cervical Spondylosis</h2>
+      <p>Typical presentation in older patients following low-energy extension trauma (e.g., fall from ground level) to a pre-existing stenotic cervical canal, <strong>without significant fractures or instability</strong>.</p>
+      <h3>Clinical Features</h3>
+      <ul class="content-list">
+        <li>Upper limb weakness (greater than lower limb)</li>
+        <li>Altered sensation</li>
+        <li>Variable bladder dysfunction</li>
+      </ul>
+      <div class="info-box"><strong>MRI findings</strong> may report "cord compression," "cord oedema," and "myelomalacia" \u2014 these can be alarming but historically these injuries are managed conservatively. ${refLink([2,3])}</div>
+      <p>Does this patient match the typical central cord presentation?</p>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(1,'match','typical')">Yes \u2014 typical presentation (no significant fracture/instability)</button>
+        <button class="option-btn" onclick="nextStep(2,'match','atypical')">No \u2014 significant fracture or instability present</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 1) {
+    return renderProgress(2, totalSteps, 'Central Cord') +
+    `<div class="step-card">
+      <h2>Evidence on Surgical Timing</h2>
+      <p>Some authors suggest early decompression ${refLink([4,5])}, but these recommendations are based on <strong>low-quality evidence</strong>. ${refLink(6)}</p>
+      <p>The definition of "early" surgery varies widely: from &lt;8 hours to 4 days post-injury. ${refLink(6)}</p>
+      <div class="info-box">Studies comparing early to delayed surgery show <strong>no significant difference</strong> in neurological and functional recovery, ICU stay length, or mortality. ${refLink([7,8])}<br><br>Some evidence suggests delayed surgery may be associated with <strong>lower mortality</strong>. ${refLink(9)}</div>
+      <p><strong>77% of patients achieve full motor recovery</strong>, typically within the first 3 weeks. ${refLink(3)}</p>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(10,'timing','conservative')">View Recommendation</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 2) {
+    return renderProgress(2, totalSteps, 'Central Cord') +
+    `<div class="step-card">
+      <h2>Atypical Presentation</h2>
+      <p>If significant fractures or instability are present, this should be managed as a <strong>Trauma</strong> case with SLICS scoring.</p>
+      <div class="option-group">
+        <button class="btn btn-primary btn-block" onclick="goHome();setTimeout(function(){startPathway('trauma');},100);">Go to Trauma Pathway (SLICS/TLICS)</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 10) {
+    return renderProgress(3, totalSteps, 'Central Cord') +
+    `<div class="result-card">
+      <div class="rec-label">Recommended Management</div>
+      <div class="rec-text">Conservative Management</div>
+      <p style="font-size:0.88rem;color:var(--grey-700);">No urgency for same-night surgery. Consider elective decompression if clinically indicated.</p>
+      <ul class="content-list">
+        <li>77% full motor recovery within 3 weeks ${refLink(3)}</li>
+        <li>No significant difference between early vs delayed surgical outcomes ${refLink([7,8])}</li>
+        <li>Delayed surgery may have lower mortality ${refLink(9)}</li>
+      </ul>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Central Cord Injury with pre-existing cervical spondylosis</div>
+      <div class="path-step">Typical presentation: no significant fracture/instability</div>
+      <div class="path-step">Evidence supports conservative management</div>
+      <div class="path-step">Recommendation: Conservative management</div>
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+  return '';
+}
+
+// --- CES ---
+function renderCES() {
+  var totalSteps = 4;
+  var nav = `<div class="nav-buttons"><button class="btn btn-back" onclick="goBack()">&#8592; Back</button><button class="btn btn-danger" onclick="goHome()">Start Over</button></div>`;
+
+  if (pathwayStep === 0) {
+    return renderProgress(1, totalSteps, 'Cauda Equina') +
+    `<div class="step-card">
+      <h2>Cauda Equina Syndrome \u2014 Clinical Diagnosis</h2>
+      <p>CES is primarily a <strong>clinical diagnosis</strong>, not solely based on radiological findings. ${refLink(11)}</p>
+      <p>CES results from dysfunction of sacral nerve roots (S2 and below). <strong>At least one</strong> of the following must be present: ${refLink(11)}</p>
+      <ul class="content-list">
+        <li>Bladder and/or bowel dysfunction</li>
+        <li>Reduced sensation in the saddle area</li>
+        <li>Sexual dysfunction</li>
+      </ul>
+      <div class="info-box">Back and leg pain, along with motor/sensory changes in the lower limbs, are common but <strong>not essential</strong> for diagnosis. MRI is needed to confirm nerve root compression.</div>
+      <p>Does the patient meet CES clinical criteria?</p>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(1,'dx','confirmed')">Yes \u2014 clinical criteria met</button>
+        <button class="option-btn" onclick="nextStep(5,'dx','suspicious')">Suspicious but uncertain (CESS)</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 1) {
+    return renderProgress(2, totalSteps, 'Cauda Equina') +
+    `<div class="step-card">
+      <h2>Classify CES Type ${refLink(12)}</h2>
+      <table class="data-table">
+        <thead><tr><th>Feature</th><th>CES-I (Incomplete)</th><th>CES-R (Retention)</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Bladder</strong></td><td>Urinary issues: loss of desire to void, altered sensation, hesitancy</td><td>Painless urinary retention with overflow incontinence</td></tr>
+          <tr><td><strong>Saddle sensation</strong></td><td>Partial saddle anaesthesia</td><td>Complete perianal sensory loss</td></tr>
+          <tr><td><strong>Anal tone</strong></td><td>Reduced</td><td>Faecal incontinence</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:12px;font-weight:600;">Which pattern best matches?</p>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(2,'cesType','CES-I')">CES-I (Incomplete) \u2014 altered but not absent function</button>
+        <button class="option-btn" onclick="nextStep(3,'cesType','CES-R')">CES-R (Retention) \u2014 painless retention, complete sensory loss</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 2) {
+    return renderProgress(3, totalSteps, 'Cauda Equina') +
+    `<div class="result-card urgent-result">
+      <div class="rec-label">CES-I \u2014 Timing Recommendation</div>
+      <div class="rec-text">Prompt Surgery Recommended</div>
+      <p style="font-size:0.88rem;color:var(--grey-700);">Prompt surgery is recommended to <strong>prevent progression from CES-I to CES-R</strong>. ${refLink(13)}</p>
+      <ul class="content-list">
+        <li>Surgery within 48 hours improves sensory, motor, urinary, and rectal function ${refLink(14)}</li>
+        <li>No significant advantage of &lt;24h vs 24\u201348h window ${refLink(14)}</li>
+        <li>Outcomes are generally more favourable for CES-I than CES-R ${refLink(10)}</li>
+      </ul>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Cauda Equina Syndrome confirmed clinically</div>
+      <div class="path-step">Classified as CES-I (Incomplete)</div>
+      <div class="path-step">Recommendation: Prompt surgery within 48 hours</div>
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+
+  if (pathwayStep === 3) {
+    return renderProgress(3, totalSteps, 'Cauda Equina') +
+    `<div class="result-card">
+      <div class="rec-label">CES-R \u2014 Timing Recommendation</div>
+      <div class="rec-text">Surgery \u2014 Limited Emergent Benefit</div>
+      <p style="font-size:0.88rem;color:var(--grey-700);">Emergency surgery offers <strong>limited benefits</strong> for complete CES-R. ${refLink(13)}</p>
+      <ul class="content-list">
+        <li>Outcomes generally poorer than CES-I ${refLink(10)}</li>
+        <li>Surgery within 48 hours can still improve outcomes ${refLink(14)}</li>
+        <li>Consider surgery on next available list rather than emergent same-night operation</li>
+      </ul>
+      <div class="warning-box">
+        <div class="warn-title">Note</div>
+        Two additional rare categories exist: <strong>CESS</strong> (suspicious \u2014 bilateral radiculopathy without objective CES) and <strong>CESC</strong> (complete \u2014 loss of all cauda equina function).
+      </div>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Cauda Equina Syndrome confirmed clinically</div>
+      <div class="path-step">Classified as CES-R (Retention)</div>
+      <div class="path-step">Recommendation: Surgery (limited emergent benefit)</div>
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+
+  if (pathwayStep === 5) {
+    return renderProgress(2, totalSteps, 'Cauda Equina') +
+    `<div class="step-card">
+      <h2>CES Suspicious (CESS)</h2>
+      <p>CESS represents bilateral radiculopathy <strong>without objective evidence</strong> of CES. This is not a confirmed diagnosis of CES.</p>
+      <div class="warning-box">
+        <div class="warn-title">Recommendation</div>
+        Arrange urgent MRI to evaluate for nerve root compression. If MRI confirms significant compression with evolving clinical signs, reclassify as CES-I or CES-R.
+      </div>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(1,'dx','confirmed')">MRI confirms \u2014 reclassify as CES</button>
+        <button class="option-btn" onclick="goHome()">Not CES \u2014 return to home</button>
+      </div>
+    </div>` + nav;
+  }
+  return '';
+}
+
+// --- TRAUMA ---
+function renderTrauma() {
+  var totalSteps = 4;
+  var nav = `<div class="nav-buttons"><button class="btn btn-back" onclick="goBack()">&#8592; Back</button><button class="btn btn-danger" onclick="goHome()">Start Over</button></div>`;
+
+  if (pathwayStep === 0) {
+    return renderProgress(1, totalSteps, 'Trauma') +
+    `<div class="step-card">
+      <h2>Spinal Trauma \u2014 Select Region</h2>
+      <p>Two scoring systems guide surgical recommendations: ${refLink([15,16])}</p>
+      <p>Both use <strong>two radiological parameters</strong> (morphology + ligamentous integrity) and <strong>one clinical parameter</strong> (neurology).</p>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(1,'region','cervical')"><strong>Cervical (Subaxial)</strong> \u2014 Use SLICS</button>
+        <button class="option-btn" onclick="nextStep(2,'region','thoracolumbar')"><strong>Thoracolumbar</strong> \u2014 Use TLICS</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 1) {
+    return renderProgress(2, totalSteps, 'Trauma \u2014 SLICS') +
+    `<div class="step-card">
+      <h2>SLICS Calculator</h2>
+      <p>Score each category based on imaging and examination. ${refLink(15)}</p>
+    </div>` +
+    buildCalculator(SLICS_DATA, 'slicsCalc') +
+    `<div class="info-box" style="margin-top:12px;">
+      <strong>Timing guidance (STASCIS):</strong> Surgery within 24 hours of injury recommended. OR 2.83 (95% CI: 1.10\u20137.28) for \u22652 ASIA grade improvement at 6 months. ${refLink([15,16])}
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+
+  if (pathwayStep === 2) {
+    return renderProgress(2, totalSteps, 'Trauma \u2014 TLICS') +
+    `<div class="step-card">
+      <h2>TLICS Calculator</h2>
+      <p>Score each category based on imaging and examination.</p>
+    </div>` +
+    buildCalculator(TLICS_DATA, 'tlicsCalc') +
+    `<div class="info-box" style="margin-top:12px;">
+      <strong>Timing guidance (STASCIS):</strong> Surgery within 24 hours of injury recommended. AO Spine/Praxis also supports decompression within 24 hours to improve neurological outcomes. ${refLink([15,16])}
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+
+  return '';
+}
+
+// --- MALIGNANCY ---
+function renderMalignancy() {
+  var totalSteps = 5;
+  var nav = `<div class="nav-buttons"><button class="btn btn-back" onclick="goBack()">&#8592; Back</button><button class="btn btn-danger" onclick="goHome()">Start Over</button></div>`;
+
+  if (pathwayStep === 0) {
+    return renderProgress(1, totalSteps, 'Malignancy \u2014 NOMS') +
+    `<div class="step-card">
+      <h2>NOMS Framework \u2014 Step 1: Neurologic ${refLink(21)}</h2>
+      <p>Grade the degree of metastatic epidural spinal cord compression (MESCC) based on MRI T2 axial images at the site of greatest compression.</p>
+      <div class="info-box" style="cursor:pointer;" onclick="switchTab('reference');showRefSection('scores');setTimeout(function(){var collapsibles=document.querySelectorAll('#refContent .collapsible');collapsibles.forEach(function(c){var header=c.querySelector('.collapsible-header');if(header&&header.textContent.indexOf('ESCC')!==-1){c.classList.add('open');c.scrollIntoView({behavior:'smooth',block:'start'});}});},200);">
+        <strong>ESCC Grading:</strong> 0 = bone only &bull; 1a&ndash;1c = epidural impingement &bull; 2 = cord compression, CSF visible &bull; 3 = cord compression, no CSF<br>
+        <span style="font-size:0.78rem;color:var(--teal);">Tap for full ESCC grading table in Scoring Systems &rarr;</span>
+      </div>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(1,'neuro','low')"><strong>Low-grade ESCC</strong> (Grade 0 or 1) + No myelopathy</button>
+        <button class="option-btn" onclick="nextStep(1,'neuro','high')"><strong>High-grade ESCC</strong> (Grade 2 or 3) \u00b1 Myelopathy</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 1) {
+    return renderProgress(2, totalSteps, 'Malignancy \u2014 NOMS') +
+    `<div class="step-card">
+      <h2>NOMS Framework \u2014 Step 2: Oncologic ${refLink(21)}</h2>
+      <p>Classify tumour radiosensitivity based on response to conventional external beam radiotherapy (cEBRT).</p>
+      <div class="info-box"><strong>Radiosensitive:</strong> Lymphoma, myeloma, seminoma, breast, prostate, small cell lung, Ewing sarcoma<br><strong>Radioresistant:</strong> Renal cell, melanoma, sarcoma, NSCLC, hepatocellular, thyroid, colorectal</div>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(2,'onco','radiosensitive')">Radiosensitive</button>
+        <button class="option-btn" onclick="nextStep(2,'onco','radioresistant')">Radioresistant / previously irradiated</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 2) {
+    return renderProgress(3, totalSteps, 'Malignancy \u2014 NOMS') +
+    `<div class="step-card">
+      <h2>NOMS Framework \u2014 Step 3: Mechanical ${refLink(20)}</h2>
+      <p>Assess structural stability using the SINS score.</p>
+      ${buildCalculator(SINS_DATA, 'sinsCalc')}
+      <p style="margin-top:16px;font-weight:600;">Based on SINS assessment:</p>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(3,'mech','stable')">Stable (SINS 0\u20136)</button>
+        <button class="option-btn" onclick="nextStep(3,'mech','unstable')">Indeterminate or Unstable (SINS \u22657)</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 3) {
+    // Determine if we need systemic assessment
+    var needSystemic = (pathwaySelections.neuro === 'high' && pathwaySelections.onco === 'radioresistant');
+    if (needSystemic) {
+      return renderProgress(4, totalSteps, 'Malignancy \u2014 NOMS') +
+      `<div class="step-card">
+        <h2>NOMS Framework \u2014 Step 4: Systemic ${refLink(21)}</h2>
+        <p>Assess whether the patient can tolerate surgical intervention, considering tumour burden and comorbidities. ${refLink(22)}</p>
+        <div class="info-box">Surgery may be considered if effective pharmacotherapy is available post-operatively for systemic tumour control and if systemic progression is not rapid enough to hinder post-operative recovery.</div>
+        <div class="option-group">
+          <button class="option-btn" onclick="nextStep(10,'syst','able')">Able to tolerate surgery</button>
+          <button class="option-btn" onclick="nextStep(10,'syst','unable')">Unable to tolerate surgery</button>
+        </div>
+      </div>` + nav;
+    } else {
+      pathwaySelections.syst = '-';
+      // Skip to result
+      pathwayHistory.push({step: pathwayStep, selections: JSON.parse(JSON.stringify(pathwaySelections))});
+      pathwayStep = 10;
+      return renderMalignancy();
+    }
+  }
+
+  if (pathwayStep === 10) {
+    // Find matching NOMS decision
+    var neuro = pathwaySelections.neuro === 'low' ? 'Low-grade ESCC + No myelopathy' : 'High-grade ESCC \u00b1 Myelopathy';
+    var onco = pathwaySelections.onco === 'radiosensitive' ? 'Radiosensitive' : 'Radioresistant';
+    var mech = pathwaySelections.mech === 'stable' ? 'Stable' : 'Unstable';
+    var syst = pathwaySelections.syst === 'able' ? 'Able to tolerate surgery' : (pathwaySelections.syst === 'unable' ? 'Unable to tolerate surgery' : '-');
+
+    var decision = 'No matching recommendation found';
+    for (var i = 0; i < NOMS_MATRIX.length; i++) {
+      var r = NOMS_MATRIX[i];
+      if (r.neuro === neuro && r.onco === onco && r.mech === mech && (r.syst === syst || r.syst === '-')) {
+        decision = r.decision;
+        break;
+      }
+    }
+
+    var isSurgical = decision.toLowerCase().includes('decompression') || decision.toLowerCase().includes('stabilization');
+
+    return renderProgress(5, totalSteps, 'Malignancy \u2014 NOMS') +
+    `<div class="result-card ${isSurgical ? 'urgent-result' : ''}">
+      <div class="rec-label">NOMS Recommendation ${refLink(21)}</div>
+      <div class="rec-text">${decision}</div>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Neurologic: ${neuro}</div>
+      <div class="path-step">Oncologic: ${onco}</div>
+      <div class="path-step">Mechanical: ${mech}</div>
+      ${syst !== '-' ? '<div class="path-step">Systemic: ' + syst + '</div>' : ''}
+      <div class="path-step">Decision: ${decision}</div>
+    </div>
+    <div class="info-box" style="margin-top:12px;">
+      <strong>Key abbreviations:</strong> cEBRT = conventional external beam radiation therapy; SRS = stereotactic radiosurgery. Stabilization options include percutaneous cement augmentation, percutaneous pedicle screw instrumentation, and open instrumentation. ${refLink(49)}
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+  return '';
+}
+
+// --- INFECTION ---
+function renderInfection() {
+  var totalSteps = 3;
+  var nav = `<div class="nav-buttons"><button class="btn btn-back" onclick="goBack()">&#8592; Back</button><button class="btn btn-danger" onclick="goHome()">Start Over</button></div>`;
+
+  if (pathwayStep === 0) {
+    return renderProgress(1, totalSteps, 'Infection') +
+    `<div class="step-card">
+      <h2>Spinal Infection \u2014 Classification</h2>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(1,'type','pyogenic')"><strong>Pyogenic Infection</strong><br><span style="font-size:0.8rem;color:var(--grey-500);">Discitis, spondylitis, spondylodiscitis, epidural abscess</span></button>
+        <button class="option-btn" onclick="nextStep(2,'type','tb')"><strong>Tuberculous (TB) Infection</strong><br><span style="font-size:0.8rem;color:var(--grey-500);">Spinal tuberculosis</span></button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 1) {
+    return renderProgress(2, totalSteps, 'Infection \u2014 Pyogenic') +
+    `<div class="step-card">
+      <h2>Pyogenic Spinal Infection ${refLink([23,24])}</h2>
+      <p>Most cases can be managed <strong>non-operatively</strong> with systemic antibiotics after septic work-up and tissue biopsies.</p>
+      <h3>General Indications for Surgery</h3>
+      <ul class="content-list">
+        <li><strong>Spinal epidural abscess</strong></li>
+        <li><strong>Progressive neurological deficits</strong> (cord or cauda equina compression)</li>
+      </ul>
+      <h3>Relative Indications</h3>
+      <ul class="content-list">
+        <li>Uncertain diagnosis (surgically obtaining specimens)</li>
+        <li>Failed conservative treatment</li>
+        <li>Progressive spinal deformity with mechanical instability</li>
+      </ul>
+      <p style="margin-top:12px;">Does the patient have surgical indications?</p>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(10,'pyoSx','yes')">Yes \u2014 surgical indication present</button>
+        <button class="option-btn" onclick="nextStep(11,'pyoSx','no')">No \u2014 no surgical indication</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 2) {
+    return renderProgress(2, totalSteps, 'Infection \u2014 TB') +
+    `<div class="step-card">
+      <h2>Spinal Tuberculosis ${refLink([25,26])}</h2>
+      <p>Classified as <strong>complicated</strong> (instability, deformity, or neurological deficits) or <strong>uncomplicated</strong>.</p>
+      <p>Primary treatment: <strong>Anti-TB chemotherapy</strong> (even with cold abscess). ${refLink(26)}</p>
+      <h3>Surgical Drainage Only If:</h3>
+      <ul class="content-list">
+        <li>Respiratory distress ${refLink(27)}</li>
+        <li>Dysphagia from cervical paravertebral abscess</li>
+        <li>Large psoas abscess causing hip pseudo-flexion deformity ${refLink(28)}</li>
+      </ul>
+      <h3>Other Surgery Indications</h3>
+      <div style="margin:8px 0;"><strong>Chemotherapy factors:</strong></div>
+      <ul class="content-list">
+        <li>Lack of response to chemotherapy</li>
+        <li>Recurrence of infection</li>
+        <li>Severe weakness at presentation</li>
+        <li>Static or worsening neurological deficits despite chemotherapy</li>
+      </ul>
+      <div style="margin:8px 0;"><strong>Mechanical factors:</strong></div>
+      <ul class="content-list">
+        <li>Instability</li>
+        <li>Incapacitating pain</li>
+        <li>Deformities</li>
+      </ul>
+      <p style="margin-top:12px;">Does the patient have surgical indications?</p>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(12,'tbSx','yes')">Yes \u2014 surgical indication present</button>
+        <button class="option-btn" onclick="nextStep(13,'tbSx','no')">No \u2014 no surgical indication</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 10) {
+    return renderProgress(3, totalSteps, 'Infection \u2014 Pyogenic') +
+    `<div class="result-card urgent-result">
+      <div class="rec-label">Recommendation</div>
+      <div class="rec-text">Surgical Intervention Indicated</div>
+      <p style="font-size:0.88rem;">Proceed with surgical planning. Continue systemic antibiotics post-operatively. ${refLink([23,24])}</p>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Pyogenic spinal infection</div>
+      <div class="path-step">Surgical indication present</div>
+      <div class="path-step">Recommendation: Surgery + systemic antibiotics</div>
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+
+  if (pathwayStep === 11) {
+    return renderProgress(3, totalSteps, 'Infection \u2014 Pyogenic') +
+    `<div class="result-card">
+      <div class="rec-label">Recommendation</div>
+      <div class="rec-text">Conservative Management</div>
+      <p style="font-size:0.88rem;">Systemic antibiotics after septic work-up and tissue biopsies. ${refLink([23,24])}</p>
+      <p style="font-size:0.85rem;color:var(--grey-600);">Monitor for progression of neurological deficits or failure of conservative treatment, which would warrant surgical re-evaluation.</p>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Pyogenic spinal infection</div>
+      <div class="path-step">No surgical indication</div>
+      <div class="path-step">Recommendation: Conservative (antibiotics)</div>
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+
+  if (pathwayStep === 12) {
+    return renderProgress(3, totalSteps, 'Infection \u2014 TB') +
+    `<div class="result-card urgent-result">
+      <div class="rec-label">Recommendation</div>
+      <div class="rec-text">Surgery + Anti-TB Chemotherapy</div>
+      <p style="font-size:0.88rem;">Surgical intervention for the identified indication, in conjunction with anti-TB chemotherapy. ${refLink([26,28])}</p>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Spinal tuberculosis</div>
+      <div class="path-step">Surgical indication present</div>
+      <div class="path-step">Recommendation: Surgery + anti-TB chemotherapy</div>
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+
+  if (pathwayStep === 13) {
+    return renderProgress(3, totalSteps, 'Infection \u2014 TB') +
+    `<div class="result-card">
+      <div class="rec-label">Recommendation</div>
+      <div class="rec-text">Anti-TB Chemotherapy</div>
+      <p style="font-size:0.88rem;">Primary treatment with anti-TB chemotherapy. Even in cases with cold abscess, chemotherapy is generally sufficient. ${refLink(26)}</p>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Spinal tuberculosis</div>
+      <div class="path-step">No surgical indication</div>
+      <div class="path-step">Recommendation: Anti-TB chemotherapy</div>
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+  return '';
+}
+
+// --- NEUROGENIC SHOCK ---
+function renderNeurogenicShock() {
+  var totalSteps = 2;
+  var nav = `<div class="nav-buttons"><button class="btn btn-back" onclick="goBack()">&#8592; Back</button><button class="btn btn-danger" onclick="goHome()">Start Over</button></div>`;
+
+  if (pathwayStep === 0) {
+    return renderProgress(1, totalSteps, 'Neurogenic Shock') +
+    `<div class="step-card">
+      <h2>Neurogenic Shock ${refLink(17)}</h2>
+      <p>A distributive shock <strong>distinct from spinal shock</strong>.</p>
+      <h3>Key Features</h3>
+      <ul class="content-list">
+        <li><strong>Hypotension</strong></li>
+        <li><strong>Relative bradycardia</strong></li>
+        <li><strong>Peripheral vasodilatation</strong></li>
+      </ul>
+      <div class="danger-box">
+        <strong>Clinical dilemma:</strong> Hypotension reduces spinal cord blood flow, worsening ischaemia and potentially exacerbating secondary injury. The challenge is whether to decompress the cord while haemodynamically unstable, or to stabilise first.
+      </div>
+      <div class="option-group">
+        <button class="option-btn" onclick="nextStep(1,'dx','confirmed')">View Management Guidance</button>
+      </div>
+    </div>` + nav;
+  }
+
+  if (pathwayStep === 1) {
+    return renderProgress(2, totalSteps, 'Neurogenic Shock') +
+    `<div class="result-card">
+      <div class="rec-label">Management Guidance ${refLink(17)}</div>
+      <div class="rec-text">Haemodynamic Stabilisation as Priority</div>
+      <div class="warning-box">
+        <div class="warn-title">No Consensus in Literature</div>
+        There is currently no consensus on optimal timing of surgical decompression in haemodynamically unstable patients with spinal cord injury.
+      </div>
+      <h3 style="margin-top:16px;">Stabilisation Measures</h3>
+      <ul class="content-list">
+        <li>IV fluid resuscitation</li>
+        <li>Vasopressor support (noradrenaline preferred)</li>
+        <li>Atropine for significant bradycardia</li>
+        <li>Continuous haemodynamic monitoring</li>
+        <li>Maintain MAP \u226585 mmHg to optimise spinal cord perfusion</li>
+      </ul>
+      <h3>Integration with Timing Decisions</h3>
+      <p style="font-size:0.88rem;color:var(--grey-700);">Once haemodynamically stable, refer to the <strong>Trauma pathway</strong> (SLICS/TLICS) for surgical decision-making. STASCIS guidance supports surgery within 24 hours when feasible. ${refLink([15,16])}</p>
+    </div>
+    <div class="summary-path">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;">Decision Path Summary</div>
+      <div class="path-step">Neurogenic shock identified</div>
+      <div class="path-step">Priority: Haemodynamic stabilisation</div>
+      <div class="path-step">Once stable: Proceed to Trauma pathway for surgical decision</div>
+    </div>
+    ${PATHWAY_DISCLAIMER}` + nav;
+  }
+  return '';
+}
+</script>
+<style>
+/* Theatre preparation styles */
+.theatre-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.theatre-search {
+  padding: 10px 12px;
+  border: 2px solid var(--grey-300);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  width: 100%;
+  max-width: 320px;
+}
+.theatre-search:focus {
+  outline: none;
+  border-color: var(--teal);
+}
+.filter-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--grey-300);
+  border-radius: 20px;
+  background: var(--white);
+  color: var(--grey-700);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.filter-btn:hover, .filter-btn.active {
+  background: var(--teal);
+  color: var(--white);
+  border-color: var(--teal);
+}
+.procedure-card {
+  background: var(--white);
+  border: 1px solid var(--grey-200);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+  animation: fadeIn 0.25s ease;
+}
+.procedure-card h4 {
+  color: var(--navy);
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+}
+.procedure-category {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.cat-degenerative { background: #dbeafe; color: #1e40af; }
+.cat-trauma { background: #fef2f2; color: #991b1b; }
+.cat-malignancy { background: #fef3c7; color: #92400e; }
+.cat-infection { background: #d1fae5; color: #065f46; }
+</style>
+
+<script>
+// ============================================================
+// REFERENCE TAB CONTENT
+// ============================================================
+
+let currentRefSection = 'workflow';
+
+// ------------------------------------------------------------
+// Theatre procedure data (from source document)
+// ------------------------------------------------------------
+const THEATRE_DATA = [
+  {
+    category: 'Degenerative',
+    name: 'Acute Cervical Disc Prolapse',
+    assumptions: '1\u20133 levels; No significant OPLL',
+    procedure: 'Anterior cervical discectomy and fusion',
+    instruments: ['Supine', 'X-ray control', 'Trimline Cervical Retractor (Medtronic)', 'Zevo cervical plate system (Medtronic)', 'PEEK cage (Medtronic)', 'Microscope (Carl Zeiss)']
+  },
+  {
+    category: 'Degenerative',
+    name: 'Cauda Equina Syndrome Decompression',
+    assumptions: 'Acute large protruded intervertebral disc',
+    procedure: 'Posterior decompression (laminectomy and discectomy)',
+    instruments: ['Prone', 'Wilson Frame', 'X-ray control']
+  },
+  {
+    category: 'Degenerative',
+    name: 'Acute Central Cord Surgery',
+    assumptions: 'Multi-level stenosis without structural instability',
+    procedure: 'Laminoplasty (minimal OPLL/kyphosis) OR Posterior cervical decompression and fusion (extensive OPLL/kyphosis)',
+    instruments: ['Skull Tongs + Lev\u00f3 Head Positioning System', 'X-ray control', 'Sandwich bed turning to prone', 'Laminoplasty \u2192 Arch plates (Synthes)', 'Fusion \u2192 Vertex cervical screws (Medtronic) + Bone mill']
+  },
+  {
+    category: 'Trauma',
+    name: 'Cervical Facet Dislocation',
+    assumptions: 'Select approach by reduction success, disc status, and mechanical stability',
+    procedure: 'Anterior reduction/fusion; Posterior reduction/fixation; Combined anterior\u2013posterior if needed',
+    instruments: ['9-1 OT', 'X-ray control', 'Anterior: Trimline + Zevo + PEEK + Microscope (Medtronic/Zeiss)', 'Posterior: Skull tongs + Lev\u00f3 + Sandwich turning + Vertex screws + Bone mill (Medtronic)']
+  },
+  {
+    category: 'Trauma',
+    name: 'Ankylosing Spondylitis Fracture (Cervical)',
+    assumptions: 'Often involves 3 spinal columns; No significant anterior column failure',
+    procedure: 'Posterior decompression and fusion (\u22653 levels above and below)',
+    instruments: ['9-1 OT', 'Skull Tongs + Lev\u00f3 Head Positioning System', 'X-ray control', 'Sandwich bed turning to prone', 'Vertex cervical screws (Medtronic)', 'Bone mill']
+  },
+  {
+    category: 'Trauma',
+    name: 'Thoracolumbar Fracture \u00b1 Dislocation',
+    assumptions: 'No significant anterior column failure',
+    procedure: 'Posterior decompression + instrumentation (\u22652 levels above and below)',
+    instruments: ['9-1 OT', 'Prone \u2014 arms abducted (below T5\u20137), arms by side (above T5\u20137)', 'OSI table', 'X-ray control', 'Sandwich bed turning to prone', 'Legacy screws (Medtronic)', 'Alternative: USS Schanz Screws (Synthes) / Expedium Screws (Synthes)']
+  },
+  {
+    category: 'Malignancy',
+    name: 'Metastatic Cord Compression (Thoracolumbar)',
+    assumptions: 'No significant anterior column failure',
+    procedure: 'Posterior decompression \u00b1 instrumentation \u00b1 costotransversectomy (\u22652 levels above and below)',
+    instruments: ['Prone', 'OSI table', 'X-ray control', 'Legacy Screws (Medtronic)']
+  },
+  {
+    category: 'Infection',
+    name: 'Cervical Epidural Abscess',
+    assumptions: 'No significant anterior (spondylodiscitis) component',
+    procedure: 'Posterior decompression and drainage (laminectomy)',
+    instruments: ['Prone', 'Skull Tongs + Lev\u00f3 Head Positioning System', 'X-ray control']
+  },
+  {
+    category: 'Infection',
+    name: 'Thoracolumbar Epidural Abscess',
+    assumptions: 'No significant psoas abscess component',
+    procedure: 'Posterior decompression (laminectomy)',
+    instruments: ['Prone \u2014 arms abducted (below T5\u20137), arms by side (above T5\u20137)', 'Wilson Frame', 'X-ray control']
+  },
+  {
+    category: 'Infection',
+    name: 'Acute Septic Cervical Spondylodiscitis \u00b1 Spondylitis',
+    assumptions: 'Plan anterior reconstruction \u00b1 graft/halo as needed',
+    procedure: 'ACDF \u00b1 corpectomy \u00b1 iliac crest bone graft \u00b1 halo ring',
+    instruments: ['Supine', 'X-ray control', 'Trimline Cervical Retractor (Medtronic)', 'Zevo cervical plate system (Medtronic)', 'T2 Stratosphere expandable corpectomy cage (Medtronic)', 'PEEK cage (Medtronic)', 'Microscope (Carl Zeiss)', 'Post-op rigid neck collar', '\u00b1 Iliac crest bone graft harvest', 'Halo ring']
+  }
+];
+
+// Common instruments data
+const COMMON_INSTRUMENTS = {
+  general: ['Spine rongeurs (Lumbar A)', 'Rhoton Microdissector', 'Sonopet (ultrasonic burr) or Diamond Burr 3mm'],
+  haemostatic: ['Floseal (bovine-derived gelatin + human-derived thrombin)', 'Surgicel (oxidized regenerated cellulose)', 'Tachosil (collagen sponge coated with fibrinogen and thrombin)'],
+  boneGraft: ['I-Factor (P-15 osteogenic cell binding peptide + hydroxyapatite)', 'BMP-2 / BMP-7 (bone morphogenic protein)', 'chronOS (pure beta-tricalcium phosphate)', 'Demineralised bone graft'],
+  boneTools: ['Bone mill (autologous bone graft preparation)', 'Saw blade & core power instrument', 'Gouge (osteotomes) & chisel set', 'Impactor and offset punch', 'Caliper']
+};
+
+// Contact data  (password: change CONTACTS_PASSWORD below as needed)
+const CONTACTS_PASSWORD = 'PYNEH';
+const CONTACTS_DATA = [
+  {group: 'Medtronic', contacts: [
+    {name: 'Andy Wong', phone: '9737 3097'},
+    {name: 'Andrew Chan', phone: '9801 3714'}
+  ]},
+  {group: 'Nuvasive (Kinwood)', contacts: [
+    {name: 'Angus Lee', phone: '5408 0408'},
+    {name: 'Liz Lui', phone: '5408 3840'},
+    {name: 'Wilson Lam', phone: '9103 1455'}
+  ]},
+  {group: 'Synthes (Johnson & Johnson)', contacts: [
+    {name: 'Alan Hui', phone: '6098 9805'},
+    {name: 'Joyce Au', phone: '9588 7500'}
+  ]},
+  {group: 'PYNEH Sterile Supplies Department (SSD)', note: 'Day contact: Ms. YP Lee (EN)', contacts: [
+    {name: 'Phone 1', phone: '2595 6050'},
+    {name: 'Phone 2', phone: '2595 6701'},
+    {name: 'WhatsApp', phone: '6460 1445'}
+  ]}
+];
+
+// Theatre filter state
+var theatreFilter = 'All';
+var theatreSearch = '';
+
+// ============================================================
+// CORE FUNCTIONS
+// ============================================================
+
+function showRefSection(section) {
+  currentRefSection = section;
+  var btns = document.querySelectorAll('.ref-nav-btn');
+  btns.forEach(function(b) {
+    b.classList.remove('active');
+    var onclick = b.getAttribute('onclick') || '';
+    if (onclick.indexOf("'" + section + "'") !== -1) {
+      b.classList.add('active');
+    }
+  });
+
+  var el = document.getElementById('refContent');
+  switch(section) {
+    case 'workflow': el.innerHTML = renderRefWorkflow(); break;
+    case 'timing': el.innerHTML = renderRefTiming(); break;
+    case 'assessment': el.innerHTML = renderRefAssessment(); break;
+    case 'steroids': el.innerHTML = renderRefSteroids(); break;
+    case 'consent': el.innerHTML = renderRefConsent(); break;
+    case 'theatre': el.innerHTML = renderRefTheatre(); break;
+    case 'scores': el.innerHTML = renderRefScores(); calcState = {}; break;
+    case 'contacts': el.innerHTML = renderRefContacts(); break;
+    case 'references': el.innerHTML = renderRefReferences(); break;
+    default: el.innerHTML = '';
+  }
+
+  // Post-render initialisation
+  if (section === 'steroids') {
+    setTimeout(renderDexTaper, 0);
+  }
+  if (section === 'theatre') {
+    theatreFilter = 'All';
+    theatreSearch = '';
+  }
+}
+
+function scrollToRef(id) {
+  // Switch to reference tab if needed
+  if (currentTab !== 'reference') {
+    currentTab = 'reference';
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+    document.getElementById('tabReference').classList.add('active');
+    document.getElementById('contentReference').classList.add('active');
+  }
+  if (currentRefSection !== 'references') {
+    showRefSection('references');
+  }
+  setTimeout(function() {
+    var el = document.getElementById('ref-item-' + id);
+    if (el) {
+      el.scrollIntoView({behavior: 'smooth', block: 'center'});
+      el.style.transition = 'background 1.6s ease';
+      el.style.background = '#fff4cc';
+      setTimeout(function() { el.style.background = ''; }, 1600);
+    }
+  }, 150);
+}
+
+function toggleCollapsible(header) {
+  var c = header.closest('.collapsible');
+  if (c) c.classList.toggle('open');
+}
+
+// ============================================================
+// SECTION: WORKFLOW
+// ============================================================
+function renderRefWorkflow() {
+  return `
+    <div class="section-header">On-call Workflow</div>
+    <div class="step-card">
+      <p style="font-size:0.85rem;color:var(--grey-600);margin-bottom:12px;">Follow this structured approach when managing emergency spine cases:</p>
+      <ol class="content-list">
+        <li><strong>Attend patient</strong><br><span style="color:var(--grey-500);font-size:0.82rem;">Emergency admission, urgent consult, or known case that deteriorates</span></li>
+        <li><strong>History &amp; Physical Examination</strong><br><span style="color:var(--grey-500);font-size:0.82rem;">Focused history and neurological examination</span></li>
+        <li><strong>Formulate working diagnosis</strong><br><span style="color:var(--grey-500);font-size:0.82rem;">Differential diagnosis based on clinical findings</span></li>
+        <li><strong>Arrange &amp; evaluate imaging</strong><br><span style="color:var(--grey-500);font-size:0.82rem;">MRI &plusmn; CT urgently</span></li>
+        <li><strong>Confirm diagnosis</strong></li>
+        <li><strong>On-call team decision</strong>
+          <ul style="margin-top:6px;">
+            <li>Surgery decided for same night or early next morning</li>
+            <li>Early (but not emergent) surgery may be beneficial</li>
+            <li>Surgery not indicated</li>
+          </ul>
+        </li>
+        <li><strong>If surgery offered &rarr; Obtain consent</strong>
+          <ul style="margin-top:6px;">
+            <li>Patient agrees &rarr; Prepare theatre</li>
+            <li>Patient declines &rarr; Non-operative management</li>
+          </ul>
+        </li>
+      </ol>
+      <div class="info-box" style="margin-top:12px;">If early (but not emergent) surgery may be beneficial and the patient does not agree to same-night surgery, <strong>review case next day and re-evaluate urgency</strong>.</div>
+    </div>`;
+}
+
+// ============================================================
+// SECTION: TIMING
+// ============================================================
+function renderRefTiming() {
+  return `
+    <div class="section-header">Timing of Operation</div>
+    <div class="step-card">
+      <p>Deciding when to perform spine surgery is one of the most sensitive aspects of patient management.</p>
+      <p>Each case must be evaluated on its own merits, considering both the clinical urgency and the practical realities of surgical timing. The factors listed carry different weights depending on the specific circumstances.</p>
+
+      <h3>Clinical Factors</h3>
+      <ul class="content-list">
+        <li><strong>Patient:</strong> Age, premorbid function, comorbidities</li>
+        <li><strong>Disease:</strong> Pathology, prognosis, neurological trajectory</li>
+        <li><strong>Safety:</strong> After-hours surgery associated with higher risk of patient mortality ${refLink(29)}</li>
+      </ul>
+
+      <div class="grey-info-section">
+        <h3 style="margin-bottom:8px;">Administrative Factors
+          <span class="info-icon" tabindex="0">i</span>
+        </h3>
+        <ul class="content-list">
+          <li>Anaesthetic and theatre staff support</li>
+          <li>Operating theatre availability</li>
+          <li>Departmental manpower constraints</li>
+        </ul>
+        <div class="tooltip-text">These administrative factors are highly variable depending on hospital and department structure.</div>
+      </div>
+
+      <div class="info-box" style="margin-top:16px;">
+        <strong>Key principle:</strong> Balance clinical urgency with administrative realities on a case-by-case basis.
+      </div>
+    </div>`;
+}
+
+// ============================================================
+// SECTION: ASSESSMENT (ASIA)
+// ============================================================
+function renderRefAssessment() {
+  return `
+    <div class="section-header">Neurological Assessment (ASIA)</div>
+    <div class="step-card">
+      <div class="warning-box" style="margin-bottom:12px;">
+        <div class="warn-title">First Step</div>
+        Exclude persistent spinal shock and check the bulbocavernosus reflex before formal ASIA classification. ${refLink(31)}
+      </div>
+      <p>The ASIA (American Spinal Injury Association) Impairment Scale is the standard tool for assessing neurological function in spinal cord injuries. ${refLink(30)} While a full assessment may not always be feasible in acute cases, its principles are still applicable.</p>
+      <p>Spinal shock is characterised by flaccid, areflexic paralysis with an absent bulbocavernosus reflex. This is distinct from neurogenic shock and typically resolves within 48 hours. Return of the bulbocavernosus reflex indicates the end of spinal shock.</p>
+    </div>
+
+    <div class="collapsible open">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        ASIA Classification Steps
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <a href="https://asia-spinalinjury.org/wp-content/uploads/2019/04/ASIA-ISCOS-IntlWorksheet_2019.pdf" target="_blank" rel="noopener" class="asia-chart-thumb">
+          <div class="asia-chart-icon">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="8" y="4" width="32" height="40" rx="3" fill="#fff" stroke="#2a7d8a" stroke-width="2"/>
+              <rect x="14" y="12" width="8" height="2" rx="1" fill="#2a7d8a" opacity="0.6"/>
+              <rect x="14" y="17" width="20" height="1.5" rx="0.75" fill="#ccc"/>
+              <rect x="14" y="21" width="18" height="1.5" rx="0.75" fill="#ccc"/>
+              <rect x="14" y="25" width="20" height="1.5" rx="0.75" fill="#ccc"/>
+              <rect x="14" y="29" width="16" height="1.5" rx="0.75" fill="#ccc"/>
+              <rect x="14" y="33" width="19" height="1.5" rx="0.75" fill="#ccc"/>
+              <text x="24" y="44" text-anchor="middle" font-size="5" fill="#2a7d8a" font-weight="600">PDF</text>
+            </svg>
+          </div>
+          <div class="asia-chart-label">
+            <span class="asia-chart-title">ASIA/ISCoS 2019 ISNCSCI Worksheet</span>
+            <span class="asia-chart-hint">Tap to view full chart (PDF)</span>
+          </div>
+        </a>
+        <ol class="content-list">
+          <li><strong>Exclude persistent spinal shock</strong><br>Check for the bulbocavernosus reflex</li>
+          <li><strong>Determine neurological level of injury (NLI)</strong>
+            <ul style="margin-top:6px;">
+              <li>Test pin prick sensation in descending manner on one side of the body</li>
+              <li>If abnormal sensation is found, test the same dermatome on the contralateral side</li>
+              <li>Test other sensory modalities (e.g. light touch) to identify the most caudal intact dermatome</li>
+            </ul>
+          </li>
+          <li><strong>Determine motor level</strong>
+            <ul style="margin-top:6px;">
+              <li>Test key muscles at level corresponding to sensory level and at additional levels rostral and caudal</li>
+              <li>Most caudal muscle with grade &ge;3 and all muscles rostral with grade 5</li>
+              <li>If no myotome is present, motor level is presumed same as sensory level</li>
+            </ul>
+          </li>
+          <li><strong>Determine presence of sacral sparing</strong>
+            <ul style="margin-top:6px;">
+              <li>S4&ndash;5 sensation for light-touch and pin-prick</li>
+              <li>Deep anal pressure (DAP)</li>
+              <li>Voluntary anal contraction (VAC)</li>
+            </ul>
+          </li>
+          <li><strong>Classify injury and assign AIS grade (A&ndash;E)</strong></li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="collapsible open">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        AIS Grades
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <table class="data-table">
+          <thead><tr><th>AIS</th><th>Definition</th><th>SCI Lesion</th></tr></thead>
+          <tbody>
+            <tr><td><strong>A</strong></td><td>No sensory or motor function preserved in sacral segments S4&ndash;5</td><td>Complete</td></tr>
+            <tr><td><strong>B</strong></td><td>Sensory but not motor function preserved below neurological level, includes S4&ndash;5</td><td>Incomplete</td></tr>
+            <tr><td><strong>C</strong></td><td>Motor function preserved; more than half key muscles below NLI have grade &lt;3</td><td>Incomplete</td></tr>
+            <tr><td><strong>D</strong></td><td>Motor function preserved; at least half key muscles below NLI have grade &ge;3</td><td>Incomplete</td></tr>
+            <tr><td><strong>E</strong></td><td>Motor and sensory function normal</td><td>None</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:0.78rem;color:var(--grey-500);margin-top:8px;">Source: ASIA/ISCoS 2019 revision of ISNCSCI ${refLink(30)}</p>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Functional Walking Prediction by AIS Grade
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <table class="data-table">
+          <thead><tr><th>AIS / Feature at Admission</th><th>Community Walking at 1 Year</th></tr></thead>
+          <tbody>
+            <tr><td>AIS A &mdash; Cervical</td><td>0%</td></tr>
+            <tr><td>AIS A &mdash; Thoracic/Lumbar</td><td>5&ndash;8.5%</td></tr>
+            <tr><td>AIS B &mdash; Light touch only</td><td>0&ndash;33%</td></tr>
+            <tr><td>AIS B &mdash; Light touch + pinprick</td><td>66&ndash;89%</td></tr>
+            <tr><td>AIS C &mdash; Age &lt;50 years</td><td>71&ndash;91%</td></tr>
+            <tr><td>AIS C &mdash; Age &gt;50 years</td><td>25&ndash;42%</td></tr>
+            <tr><td>AIS D &mdash; Age &lt;50 years</td><td>~100%</td></tr>
+            <tr><td>AIS D &mdash; Age &gt;50 years</td><td>80&ndash;100%</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:0.78rem;color:var(--grey-500);margin-top:8px;">Sources: ${refLink([37,40,41,42,45,46])}</p>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+// SECTION: CORTICOSTEROIDS
+// ============================================================
+function renderRefSteroids() {
+  return `
+    <div class="section-header">Corticosteroids</div>
+
+    <div class="collapsible open">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Dexamethasone for MESCC (Malignancy)
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <ul class="content-list">
+          <li><strong>Indication:</strong> Metastatic epidural spinal cord compression (MESCC) before definitive treatment</li>
+          <li><strong>Regimen:</strong> Dexamethasone 10 mg IV bolus, then 16 mg PO daily</li>
+          <li><strong>After definitive treatment:</strong> Halve total daily dose every 3 days</li>
+          <li><strong>Precautions:</strong> Co-administer proton-pump inhibitors (PPI); consider checking HBsAg</li>
+          <li><strong>Side effects:</strong> Diabetes, myopathy, osteoporosis, gastritis, Cushing&rsquo;s syndrome, thromboembolic events, immunosuppression, sepsis, psychiatric disorder</li>
+        </ul>
+        <p style="font-size:0.78rem;color:var(--grey-500);margin-top:4px;">${refLink(39)}</p>
+
+        <div class="steroid-calc">
+          <label for="dexTaperSteps">Taper periods (every 3 days):</label>
+          <input type="number" id="dexTaperSteps" value="5" min="1" max="8" oninput="renderDexTaper()">
+          <div id="dexTaperResult" class="steroid-result"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Methylprednisolone for Traumatic SCI (AO Spine Option)
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <div class="danger-box">
+          <strong>Corticosteroid use in traumatic SCI is not standard of care.</strong> High-dose methylprednisolone is an optional, case-selected protocol only.
+        </div>
+
+        <p>The NASCIS trials examined high-dose methylprednisolone in acute SCI ${refLink(33)} but faced criticism for methodology, particularly post-hoc analysis. Subsequent trials have struggled to replicate findings. ${refLink(34)}</p>
+        <p>A 48-hour infusion of MP poses risks including infections, GI ulcers, prolonged ICU stays, and increased mortality. ${refLink(35)}</p>
+        <p>In 2013, the Congress of Neurological Surgeons issued a <strong>Level 1 recommendation against</strong> using methylprednisolone for acute SCI. ${refLink(36)} High-dose steroids are now considered an option rather than standard treatment. ${refLink(37)}</p>
+
+        <h3>AO Spine Regimen ${refLink(38)}</h3>
+        <ul class="content-list">
+          <li><strong>Indication:</strong> Non-penetrating traumatic SCI within &le;8 hours of injury</li>
+          <li><strong>Drug:</strong> Methylprednisolone (MP)</li>
+          <li><strong>Dosage:</strong> 30 mg/kg IV over 1 hour, then 5.4 mg/kg/hour for 23 hours</li>
+        </ul>
+
+        <h3>Contra-indications</h3>
+        <ul class="content-list">
+          <li>Multiply injured patient</li>
+          <li>Penetrating spinal cord injury</li>
+          <li>Glucose intolerance or diabetes mellitus</li>
+          <li>Multiple medical comorbidities or impaired immune system</li>
+          <li>Elderly patients</li>
+          <li>Pregnant patients</li>
+          <li>Complete thoracic SCI (ASIA A)</li>
+        </ul>
+
+        <div class="steroid-calc">
+          <label for="mpWeight">Patient weight (kg):</label>
+          <input type="number" id="mpWeight" value="" min="30" max="200" placeholder="e.g. 70" oninput="renderMpDose()">
+          <label for="mpHours">Hours since injury:</label>
+          <input type="number" id="mpHours" value="" min="0" max="24" placeholder="e.g. 4" oninput="renderMpDose()">
+          <div id="mpDoseResult" class="steroid-result"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-box" style="margin-top:12px;">
+      <strong>Summary:</strong> Steroids are generally <strong>not recommended</strong> for traumatic SCI. Steroids are generally <strong>recommended</strong> for malignant epidural cord compression. ${refLink([38,39])}
+    </div>`;
+}
+
+// Dexamethasone taper calculator
+function renderDexTaper() {
+  var el = document.getElementById('dexTaperResult');
+  if (!el) return;
+  var steps = Math.max(1, Math.min(8, Number(document.getElementById('dexTaperSteps').value) || 5));
+  var dose = 16;
+  var html = '<div style="font-weight:700;margin-bottom:8px;color:var(--navy);">Suggested Taper Schedule</div>';
+  html += '<div class="dose-line"><span class="dose-value">Day 0:</span> Dexamethasone 10 mg IV bolus</div>';
+  html += '<div class="dose-line"><span class="dose-value">Ongoing:</span> 16 mg PO daily until definitive treatment</div>';
+  html += '<div style="margin:8px 0 4px;font-size:0.8rem;color:var(--grey-500);">After definitive treatment:</div>';
+  for (var i = 0; i < steps; i++) {
+    var dayStart = (i * 3) + 1;
+    var dayEnd = (i * 3) + 3;
+    var display = dose < 1 ? dose.toFixed(2) : (dose < 4 ? dose.toFixed(1) : dose.toFixed(0));
+    html += '<div class="dose-line"><span class="dose-value">Days ' + dayStart + '\u2013' + dayEnd + ':</span> ' + display + ' mg/day</div>';
+    dose = dose / 2;
+  }
+  html += '<div style="margin-top:8px;font-size:0.78rem;color:var(--grey-500);">Halve total daily dose every 3 days after definitive treatment.</div>';
+  el.innerHTML = html;
+}
+
+// Methylprednisolone dose calculator
+function renderMpDose() {
+  var el = document.getElementById('mpDoseResult');
+  if (!el) return;
+  var weight = Number(document.getElementById('mpWeight').value);
+  var hoursVal = document.getElementById('mpHours').value.trim();
+
+  if (!weight || weight < 30) {
+    el.innerHTML = '<div style="font-size:0.85rem;color:var(--grey-500);">Enter patient weight to calculate dosing.</div>';
+    return;
+  }
+
+  var bolus = weight * 30;
+  var infusionRate = weight * 5.4;
+  var infusionTotal = infusionRate * 23;
+
+  var html = '<div style="font-weight:700;margin-bottom:8px;color:var(--navy);">Calculated Dosing</div>';
+  html += '<div class="dose-line"><span class="dose-value">Bolus:</span> ' + bolus.toFixed(0) + ' mg IV over 1 hour</div>';
+  html += '<div class="dose-line"><span class="dose-value">Infusion:</span> ' + infusionRate.toFixed(1) + ' mg/hour for 23 hours</div>';
+  html += '<div class="dose-line"><span class="dose-value">Total infusion:</span> ' + infusionTotal.toFixed(0) + ' mg</div>';
+
+  if (hoursVal !== '') {
+    var h = Number(hoursVal);
+    if (h <= 8) {
+      html += '<div class="info-box" style="margin-top:8px;"><strong>Within &le;8h protocol window</strong> (if no contraindications).</div>';
+    } else {
+      html += '<div class="warning-box" style="margin-top:8px;"><div class="warn-title">Outside protocol window</div>Beyond &le;8 hours from injury. Guideline does not support routine use beyond this window.</div>';
+    }
+  }
+
+  el.innerHTML = html;
+}
+
+// ============================================================
+// SECTION: CONSENTING
+// ============================================================
+function renderRefConsent() {
+  return `
+    <div class="section-header">Consenting</div>
+    <div class="step-card">
+      <p style="font-size:0.85rem;">Obtaining valid consent requires ensuring the patient is fully informed and free to decide without undue pressure. Informed consent is possible if the patient is clearly informed about:</p>
+      <ul class="content-list" style="font-size:0.85rem;">
+        <li>The objectives and benefits of the proposed treatment</li>
+        <li>Realistic expectations regarding outcomes</li>
+        <li>The risks involved, including rare but significant complications</li>
+        <li>Alternative treatment options</li>
+      </ul>
+    </div>
+
+    <div class="collapsible open">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Objectives &amp; Benefits
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <p style="font-size:0.85rem;">The specific surgical approach, implant types, and number of spinal levels may vary based on intra-operative findings. Main goals typically include:</p>
+        <ul class="content-list" style="font-size:0.85rem;">
+          <li><strong>Decompression:</strong> Relieving pressure on the spinal cord or nerves</li>
+          <li><strong>Stabilisation:</strong> Providing stability through instrumentation and/or fusion</li>
+          <li><strong>Control of local tumour or infection:</strong> Managing or reducing tumour/sepsis in the affected area</li>
+          <li><strong>Obtaining specimens:</strong> Collecting tissue samples for further diagnosis</li>
+        </ul>
+        <div class="info-box" style="font-size:0.85rem;">The primary benefit of decompression is to <strong>prevent further neurological deterioration</strong>. Neurological improvement is possible but cannot be guaranteed.</div>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Expectations &amp; Recovery
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body" style="font-size:0.85rem;">
+        <div class="warning-box" style="margin-bottom:12px;">
+          <div class="warn-title">Consent framing</div>
+          Statistics shown are population-level estimates, not predictions for an individual patient.<br><br>
+          Outcomes vary with pathology, baseline neurology, comorbidities, timing, imaging, and treatment response. Use figures to structure discussion, not to script promises.<br><br>
+          Final consent discussion should be individualized and documented by the treating clinician/team.
+        </div>
+        <p>The degree of recovery depends on mechanism and level of injury, age, comorbidities, timing of intervention, and most crucially, the <strong>severity of neurological injury</strong>.</p>
+        <p>The key factor in predicting outcomes is whether the injury is <strong>complete or incomplete</strong>. Sacral sparing is the most reliable indicator of an incomplete injury. ${refLink(40)}</p>
+
+        <h3 style="font-size:0.9rem;">Complete Injury</h3>
+        <ul class="content-list">
+          <li><strong>Tetraplegics:</strong> Among ASIA A patients, only 13% convert to incomplete status by 1 year ${refLink(41)}, and conversion does not always lead to significant functional improvement ${refLink(42)}</li>
+          <li>Only ~2.3% of initially complete patients progress to ASIA D ${refLink(43)}</li>
+          <li>Most recover function in 2&ndash;3 segments below the initial neurological level ${refLink(43)}</li>
+          <li><strong>Paraplegics:</strong> Typically experience less recovery than tetraplegics ${refLink(44)}</li>
+          <li>Conversion rate from ASIA A to B or D is about half that of tetraplegics ${refLink(44)}</li>
+          <li>Most paraplegics (73%) do not experience a change in neurological level at 1 year ${refLink(45)}</li>
+        </ul>
+
+        <h3 style="font-size:0.9rem;">Incomplete Injury</h3>
+        <ul class="content-list">
+          <li>Patients with incomplete injuries have a higher likelihood of improvement</li>
+          <li>Functional walking is more likely in ASIA B patients if injury preserves light touch and pinprick sensations, suggesting corticospinal tracts are more likely intact ${refLink(37)}</li>
+        </ul>
+
+        <h3 style="font-size:0.9rem;">Recovery Time</h3>
+        <ul class="content-list">
+          <li>Most neurological recovery occurs within the first <strong>6&ndash;9 months</strong>, typically plateauing at <strong>12&ndash;18 months</strong> ${refLink([43,40,45,46])}</li>
+          <li>Rapid early improvement correlates with greater final recovery ${refLink(3)}</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Key Complications
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body" style="font-size:0.85rem;">
+        <p>Complications are generally higher in emergency spine surgeries. Patients may be in systemic inflammation impairing haemostasis, and operative time can be unpredictable. ${refLink(47)}</p>
+
+        <div class="info-box" style="margin:12px 0;">
+          <strong>Haemorrhage</strong><br>
+          Bleeding is often more significant in emergency operations due to infections, malignancy, and inflammation (e.g. ankylosing spondylitis). Hypervascular tumours (renal cell, hepatocellular carcinoma) pose high risk. Pre-operative embolisation is not always feasible due to urgency. Heavy bleeding may necessitate massive transfusion, potentially leading to DIC, haemodynamic instability and death.
+        </div>
+
+        <div class="info-box" style="margin:12px 0;">
+          <strong>Neurological Deficits</strong><br>
+          Damage to neurological structures can occur due to positioning, instrumentation, manipulation, or spinal cord ischaemia. Explain risks in clear terms: potential weakness, paralysis, loss of sensation, new abnormal sensations, gait difficulties, bladder/bowel dysfunction, and sexual dysfunction.
+        </div>
+
+        <div class="info-box" style="margin:12px 0;">
+          <strong>Dural Tears</strong><br>
+          The dura is the outer membrane containing CSF, extending to S2. Tears can be traumatic or iatrogenic, especially when dura adheres to ligamentum flavum or pathological tissue. Unrepaired tears can lead to CSF leaks, postural headaches, dizziness, vomiting, and longer-term complications (fistula, meningitis, wound infections).
+        </div>
+
+        <div class="info-box" style="margin:12px 0;">
+          <strong>Persistent, Recurrent, and New Pathology</strong><br>
+          In spinal metastases, surgery is often palliative. Complete excision with clear margins is rarely feasible. Tumour recurrence can occur despite surgery and adjuvant therapy. Incomplete infection drainage may leave persistent foci. Decompressive surgeries can cause mechanical instability. Implant loosening, breakage, migration, delayed/failed fusion, and adjacent segment degeneration may develop.
+        </div>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Alternatives to Surgery
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <p>Patients should always be informed of non-operative options, regardless of how surgically amenable the pathology appears.</p>
+        <ul class="content-list">
+          <li><strong>Trauma:</strong> Orthoses and immobilisation</li>
+          <li><strong>Infections:</strong> Antimicrobial therapy or percutaneous drainage</li>
+          <li><strong>Malignancies:</strong> Chemotherapy or radiotherapy</li>
+        </ul>
+        <p>Patients should also be informed about the natural progression of the disease and potential consequences of opting for non-operative treatment.</p>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Surgical Risk Comparison Table
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <table class="data-table">
+          <thead><tr><th>Risk</th><th>Terminology</th><th>Rates Quoted</th></tr></thead>
+          <tbody>
+            ${SURGICAL_RISKS.map(function(r) {
+              return '<tr><td><strong>' + r.risk + '</strong></td><td>' + r.terminology + '</td><td style="font-size:0.78rem;">' + r.rates + '</td></tr>';
+            }).join('')}
+          </tbody>
+        </table>
+        <p style="font-size:0.78rem;color:var(--grey-500);margin-top:8px;">Source: ${refLink(48)}</p>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+// SECTION: THEATRE PREPARATION
+// ============================================================
+function renderRefTheatre() {
+  return `
+    <div class="section-header">Theatre Preparation</div>
+    <div class="step-card">
+      <div class="warning-box" style="margin-bottom:12px;">
+        <div class="warn-title">Local operational information</div>
+        Institution-specific theatre preparation steps, equipment availability, booking processes, and staff workflows may vary and may change over time.<br><br>
+        Verify current theatre protocols, escalation pathways, implant/instrument availability, and local responsibilities with your department and operating team before use. Listing here does not imply institutional endorsement unless explicitly stated by your service.
+      </div>
+      <p style="font-size:0.85rem;color:var(--grey-600);">The Sterile Supplies Department (SSD) generally stocks most instruments needed for acute spine conditions. However, if non-stock or non-consigned implants are required, coordinate with Sales Representatives for timely delivery. A post-op ICU bed reservation will be needed for most acute spine cases.</p>
+    </div>
+
+    <div class="theatre-filters">
+      <input type="text" class="theatre-search" placeholder="Search procedures..." oninput="searchTheatre(this.value)">
+    </div>
+    <div class="theatre-filters">
+      <button class="filter-btn active" onclick="filterTheatre('All')">All</button>
+      <button class="filter-btn" onclick="filterTheatre('Degenerative')">Degenerative</button>
+      <button class="filter-btn" onclick="filterTheatre('Trauma')">Trauma</button>
+      <button class="filter-btn" onclick="filterTheatre('Malignancy')">Malignancy</button>
+      <button class="filter-btn" onclick="filterTheatre('Infection')">Infection</button>
+    </div>
+
+    <div id="theatreProcedures">${renderTheatreProcedureCards(THEATRE_DATA)}</div>
+
+    <div class="collapsible" style="margin-top:16px;">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Common Instruments (SSD Stock)
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <p style="font-size:0.82rem;color:var(--grey-600);margin-bottom:8px;">Normally included by SSD or prepared by theatre nurses without additional request:</p>
+        <h4 style="font-size:0.85rem;color:var(--navy);margin:8px 0 4px;">General Spine Instruments</h4>
+        <ul class="content-list">${COMMON_INSTRUMENTS.general.map(function(i) { return '<li>' + i + '</li>'; }).join('')}</ul>
+        <h4 style="font-size:0.85rem;color:var(--navy);margin:8px 0 4px;">Haemostatic Adjuncts</h4>
+        <ul class="content-list">${COMMON_INSTRUMENTS.haemostatic.map(function(i) { return '<li>' + i + '</li>'; }).join('')}</ul>
+        <h4 style="font-size:0.85rem;color:var(--navy);margin:8px 0 4px;">Bone Graft Substitutes</h4>
+        <ul class="content-list">${COMMON_INSTRUMENTS.boneGraft.map(function(i) { return '<li>' + i + '</li>'; }).join('')}</ul>
+        <h4 style="font-size:0.85rem;color:var(--navy);margin:8px 0 4px;">Bone Graft Harvesting &amp; Implantation</h4>
+        <ul class="content-list">${COMMON_INSTRUMENTS.boneTools.map(function(i) { return '<li>' + i + '</li>'; }).join('')}</ul>
+      </div>
+    </div>`;
+}
+
+function renderTheatreProcedureCards(procedures) {
+  if (procedures.length === 0) {
+    return '<p style="color:var(--grey-500);text-align:center;padding:20px;">No matching procedures found.</p>';
+  }
+  return procedures.map(function(p) {
+    var catClass = 'cat-' + p.category.toLowerCase();
+    return '<div class="procedure-card">' +
+      '<span class="procedure-category ' + catClass + '">' + p.category + '</span>' +
+      '<h4>' + p.name + '</h4>' +
+      (p.assumptions ? '<p style="font-size:0.82rem;color:var(--grey-600);"><strong>Assumptions:</strong> ' + p.assumptions + '</p>' : '') +
+      '<p style="font-size:0.82rem;"><strong>Procedure:</strong> ' + p.procedure + '</p>' +
+      '<p style="font-size:0.82rem;margin-bottom:4px;"><strong>Instruments:</strong></p>' +
+      '<ul class="content-list" style="font-size:0.82rem;">' + p.instruments.map(function(i) { return '<li>' + i + '</li>'; }).join('') + '</ul>' +
+      '</div>';
+  }).join('');
+}
+
+function filterTheatre(category) {
+  theatreFilter = category;
+  applyTheatreFilter();
+}
+
+function searchTheatre(query) {
+  theatreSearch = query.toLowerCase();
+  applyTheatreFilter();
+}
+
+function applyTheatreFilter() {
+  var filtered = THEATRE_DATA.filter(function(p) {
+    if (theatreFilter !== 'All' && p.category !== theatreFilter) return false;
+    if (theatreSearch) {
+      var searchable = (p.category + ' ' + p.name + ' ' + (p.assumptions || '') + ' ' + p.procedure + ' ' + p.instruments.join(' ')).toLowerCase();
+      return searchable.indexOf(theatreSearch) !== -1;
+    }
+    return true;
+  });
+  document.getElementById('theatreProcedures').innerHTML = renderTheatreProcedureCards(filtered);
+  // Update filter buttons
+  document.querySelectorAll('.filter-btn').forEach(function(b) {
+    b.classList.remove('active');
+    if (b.textContent.trim() === theatreFilter) b.classList.add('active');
+  });
+}
+
+// ============================================================
+// SECTION: SCORING SYSTEMS
+// ============================================================
+function renderRefScores() {
+  return `
+    <div class="section-header">Scoring Systems</div>
+
+    <div class="collapsible open">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        SLICS (Subaxial Cervical Injury Classification)
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        ${buildCalculator(SLICS_DATA, 'slicsCalc')}
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        TLICS (Thoracolumbar Injury Classification)
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        ${buildCalculator(TLICS_DATA, 'tlicsCalc')}
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        SINS (Spinal Instability Neoplastic Score)
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        ${buildCalculator(SINS_DATA, 'sinsCalc')}
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        ESCC Grading (Epidural Spinal Cord Compression)
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <p style="font-size:0.85rem;margin-bottom:8px;">Grade the degree of MESCC based on MRI T2 axial images at the site of greatest compression: ${refLink(21)}</p>
+        ${IMG.esccScale ? '<div class="thumb-container" onclick="openModal(IMG.esccScale)" style="margin-bottom:12px;cursor:pointer;"><img src="' + IMG.esccScale + '" alt="ESCC Grading Scale" style="width:100%;max-width:280px;border-radius:var(--radius);border:1px solid var(--grey-200);"><p style="font-size:0.75rem;color:var(--teal);margin-top:4px;">Tap to enlarge ESCC grading scale</p></div>' : ''}
+        <table class="data-table">
+          <thead><tr><th>ESCC Grade</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><strong>0</strong></td><td>Bone-only disease without epidural impingement</td></tr>
+            <tr><td><strong>1a</strong></td><td>Epidural impingement without thecal sac deformation</td></tr>
+            <tr><td><strong>1b</strong></td><td>Thecal sac deformation without spinal cord abutment</td></tr>
+            <tr><td><strong>1c</strong></td><td>Thecal sac deformation with cord abutment but no compression</td></tr>
+            <tr><td><strong>2</strong></td><td>Spinal cord compression with visible CSF still present</td></tr>
+            <tr><td><strong>3</strong></td><td>Spinal cord compression with no visible CSF around cord</td></tr>
+          </tbody>
+        </table>
+        <div class="info-box" style="margin-top:12px;"><strong>Low-grade:</strong> ESCC 0&ndash;1 (no myelopathy) &nbsp;&bull;&nbsp; <strong>High-grade:</strong> ESCC 2&ndash;3 (&plusmn; myelopathy)</div>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+// SECTION: CONTACTS (password-protected)
+// ============================================================
+function renderRefContacts() {
+  if (contactsUnlocked) {
+    return renderContactsList();
+  }
+  return `
+    <div class="section-header">Useful Contacts</div>
+    <div class="password-overlay">
+      <p style="margin-bottom:8px;color:var(--grey-600);">This section contains contact information for implant company representatives and hospital departments.</p>
+      <p style="font-weight:600;color:var(--navy);">Enter password to access:</p>
+      <input type="password" id="contactsPwd" placeholder="Password" onkeydown="if(event.key==='Enter')unlockContacts()">
+      <br>
+      <button class="btn btn-primary" onclick="unlockContacts()" style="margin-top:8px;">Unlock</button>
+      <div id="contactsError" style="color:var(--red);font-size:0.82rem;margin-top:8px;"></div>
+    </div>`;
+}
+
+function unlockContacts() {
+  var pwd = document.getElementById('contactsPwd').value.trim();
+  if (pwd !== CONTACTS_PASSWORD) {
+    document.getElementById('contactsError').textContent = 'Incorrect password.';
+    return;
+  }
+  contactsUnlocked = true;
+  document.getElementById('refContent').innerHTML = renderContactsList();
+}
+
+function renderContactsList() {
+  var html = '<div class="section-header">Useful Contacts</div>';
+  html += '<p style="font-size:0.82rem;color:var(--grey-500);margin-bottom:12px;">Implant Company Sales Representatives &amp; Hospital Departments</p>';
+  CONTACTS_DATA.forEach(function(group) {
+    html += '<div class="step-card" style="margin-bottom:12px;">';
+    html += '<h3 style="font-size:0.95rem;">' + group.group + '</h3>';
+    if (group.note) {
+      html += '<p style="font-size:0.78rem;color:var(--grey-500);margin-bottom:8px;">' + group.note + '</p>';
+    }
+    group.contacts.forEach(function(c) {
+      var tel = c.phone.replace(/\s/g, '');
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--grey-100);">';
+      html += '<span style="font-size:0.88rem;color:var(--grey-700);">' + c.name + '</span>';
+      html += '<a class="phone-link" href="tel:' + tel + '">' + c.phone + '</a>';
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+  return html;
+}
+
+// ============================================================
+// SECTION: KEY REFERENCES
+// ============================================================
+function renderRefReferences() {
+  var html = '<div class="section-header">Key References</div>';
+  html += '<div style="font-size:0.82rem;color:var(--grey-500);margin-bottom:12px;">' + REFERENCES.length + ' references</div>';
+  REFERENCES.forEach(function(ref) {
+    html += '<div class="ref-list-item" id="ref-item-' + ref.id + '">';
+    html += '<span class="ref-num">[' + ref.id + ']</span>';
+    html += ref.text;
+    html += '</div>';
+  });
+  return html;
+}
+</script>
+
+</body>
+</html>

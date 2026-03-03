@@ -1,0 +1,109 @@
+</head>
+<body>
+
+<!-- Image Modal -->
+<div class="img-modal" id="imgModal" onclick="closeModal()">
+  <button class="modal-close" onclick="closeModal()">&times;</button>
+  <img id="modalImg" src="" alt="Full size image">
+</div>
+
+<!-- App Header -->
+<header class="app-header">
+  <div class="header-inner">
+    <div>
+      <div class="app-title">GupSpine</div>
+      <div class="app-subtitle">Emergency Spine Decision Support</div>
+    </div>
+  </div>
+</header>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('decision')" id="tabDecision">Decision Tool</button>
+  <button class="tab-btn" onclick="switchTab('reference')" id="tabReference">Reference</button>
+</div>
+
+<!-- DECISION TAB -->
+<div class="tab-content active" id="contentDecision">
+<div class="main-container">
+
+  <div class="disclaimer">Educational reference for clinicians only. Not for use by the general public as medical advice. No guarantee of completeness or currency. Verify against local policy/guidelines and current evidence. Clinical decisions remain the responsibility of the treating team.</div>
+
+  <!-- Landing page -->
+  <div id="landingPage">
+    <div style="font-size:0.85rem; color:var(--grey-600); margin-bottom:8px;">Select a pathology to begin guided decision support:</div>
+    <div class="card-grid">
+      <div class="path-card urgent" onclick="startPathway('centralCord')" tabindex="0" role="button">
+        <span class="card-icon">&#129516;</span>
+        <span class="card-title">Central Cord</span>
+        <span class="card-desc">Cervical spondylosis</span>
+      </div>
+      <div class="path-card urgent" onclick="startPathway('ces')" tabindex="0" role="button">
+        <span class="card-icon">&#9889;</span>
+        <span class="card-title">Cauda Equina</span>
+        <span class="card-desc">CES-I vs CES-R</span>
+      </div>
+      <div class="path-card urgent" onclick="startPathway('trauma')" tabindex="0" role="button">
+        <span class="card-icon">&#128680;</span>
+        <span class="card-title">Trauma</span>
+        <span class="card-desc">SLICS / TLICS</span>
+      </div>
+      <div class="path-card warning" onclick="startPathway('malignancy')" tabindex="0" role="button">
+        <span class="card-icon">&#127993;</span>
+        <span class="card-title">Malignancy</span>
+        <span class="card-desc">NOMS framework</span>
+      </div>
+      <div class="path-card warning" onclick="startPathway('infection')" tabindex="0" role="button">
+        <span class="card-icon">&#129440;</span>
+        <span class="card-title">Infection</span>
+        <span class="card-desc">Pyogenic / TB</span>
+      </div>
+      <div class="path-card" onclick="startPathway('neurogenicShock')" tabindex="0" role="button">
+        <span class="card-icon">&#128147;</span>
+        <span class="card-title">Neurogenic Shock</span>
+        <span class="card-desc">Haemodynamic</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pathway container (populated by JS) -->
+  <div id="pathwayContainer" style="display:none;"></div>
+
+</div>
+</div>
+
+<!-- REFERENCE TAB -->
+<div class="tab-content" id="contentReference">
+<div class="main-container">
+
+  <div class="disclaimer">Educational reference for clinicians only. Not for use by the general public as medical advice. No guarantee of completeness or currency. Verify against local policy/guidelines and current evidence. Clinical decisions remain the responsibility of the treating team.</div>
+
+  <div class="ref-nav" id="refNav">
+    <button class="ref-nav-btn active" onclick="showRefSection('workflow')">Workflow</button>
+    <button class="ref-nav-btn" onclick="showRefSection('timing')">Timing</button>
+    <button class="ref-nav-btn" onclick="showRefSection('assessment')">Assessment</button>
+    <button class="ref-nav-btn" onclick="showRefSection('steroids')">Corticosteroids</button>
+    <button class="ref-nav-btn" onclick="showRefSection('consent')">Consenting</button>
+    <button class="ref-nav-btn" onclick="showRefSection('theatre')">Theatre Prep</button>
+    <button class="ref-nav-btn" onclick="showRefSection('scores')">Scoring Systems</button>
+    <button class="ref-nav-btn" onclick="showRefSection('contacts')">Contacts</button>
+    <button class="ref-nav-btn" onclick="showRefSection('references')">Key References</button>
+  </div>
+
+  <div id="refContent"></div>
+
+</div>
+</div>
+
+<!-- Footer -->
+<footer class="app-footer">
+  <div>GupSpine &mdash; Emergency Spine Decision Support</div>
+  <div style="margin-top:8px;border-top:1px solid var(--grey-100);padding-top:8px;line-height:1.6;">
+    <div><strong>Author:</strong> <a href="https://drgeneleung.com" target="_blank" rel="noopener">Dr. Gene Leung</a></div>
+    <div><strong>Version:</strong> 1.0</div>
+    <div><strong>References reviewed:</strong> January 2024</div>
+    <div><strong>Last updated:</strong> 23 February 2026</div>
+    <div><strong>Project type:</strong> Independent educational reference tool</div>
+    <div style="margin-top:4px;font-style:italic;color:var(--grey-400);">Scope Note: General educational reference; local protocols vary by institution and jurisdiction.</div>
+  </div>
+</footer>

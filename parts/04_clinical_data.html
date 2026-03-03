@@ -1,0 +1,250 @@
+<script>
+// ============================================================
+// CLINICAL DATA - Editable JSON structures
+// ============================================================
+
+const REFERENCES = [
+  {id:1, text:'Chan K, Chang Y, Cheng J, et al. Core Curriculum for Orthopaedic Training. 1999.'},
+  {id:2, text:'Schneider R, Thompson J, Jose B. The syndrome of acute central cervical spinal cord injury. J Neurol Neurosurg Psychiatry. 1958;21:216-227.'},
+  {id:3, text:'Ishida Y, Tominaga T. Predictors of neurologic recovery in acute central cervical cord injury with only upper extremity impairment. Spine (Phila Pa 1976). 2002;27:1652-1658.'},
+  {id:4, text:'Lenehan B, Fisher C, Vaccaro A, Fehlings M, Aarabi B, Dvorak M. The urgency of surgical decompression in acute central cord injuries with spondylosis and without instability. Spine. 2010;35:S180-6.'},
+  {id:5, text:'Fehlings M, Tetreault L, Wilson J, Aarabi B. A clinical practice guideline for the management of patients with acute spinal cord injury and central cord syndrome: recommendations on the timing of decompressive surgery. Global Spine J. 2017;195S-202S.'},
+  {id:6, text:'Divi SN, Schroeder GD, Mangan JJ, et al. Management of acute traumatic central cord syndrome: a narrative review. Global Spine J. 2019;89S-97S.'},
+  {id:7, text:'Park M, Moon S, Lee H. Delayed surgical intervention in central cord syndrome with cervical stenosis. Global Spine J. 2014;5:69-72.'},
+  {id:8, text:'Kepler C, Kong C, Schroeder G, et al. Early outcome and predictors of early outcome in patients treated surgically for central cord syndrome. J Neurosurg Spine. 2015;23:490-4.'},
+  {id:9, text:'Samuel A, Grant R, Bohl D, Basques B. Delayed surgery after acute traumatic central cord syndrome is associated with reduced mortality. Spine. 2015;40:349-56.'},
+  {id:10, text:'Srikandarajah N. Outcomes reported after surgery for cauda equina syndrome: a systematic literature review. Spine. 2018;43:1.'},
+  {id:11, text:'Lavy C, Marks P, Dangas K, Todd N. Cauda equina syndrome \u2014 a practical guide to definition and classification. Int Orthop. 2022;46:165-169.'},
+  {id:12, text:'Todd N, Dickson R. Standards of care in cauda equina syndrome. Br J Neurosurg. 2016;30:518-522.'},
+  {id:13, text:'Gleaves J, Macfarlane R. Cauda equina syndrome: what is the relationship between timing of surgery and outcome? Br J Neurosurg. 2002;16:325-328.'},
+  {id:14, text:'Ahn U, Ahn N, Buchowski J, Garret S, Sieber A, Kostuik J. Cauda equina syndrome secondary to lumbar disc herniation \u2014 a meta-analysis of surgical outcomes. Spine. 2000;25(12):1515-1522.'},
+  {id:15, text:'Fehlings MG, Vaccaro A, Wilson JR, Singh A. Early versus delayed decompression for traumatic cervical spinal cord injury: results of the Surgical Timing in Acute Spinal Cord Injury Study (STASCIS). PLoS One. 2012;7(2):e32037.'},
+  {id:16, text:'Kwon B, Tetreault L, Evaniew N, Skelly A, Fehlings M. AO Spine/Praxis clinical practice guidelines for the management of acute spinal cord injury. Global Spine J. 2024;14:5S-9S.'},
+  {id:17, text:'Tuli S, Tuli J, Coleman WP, Geisler FH, Krassioukov A. Hemodynamic parameters and timing of surgical decompression in acute cervical spinal cord injury. J Spinal Cord Med. 2007;30:482-90.'},
+  {id:18, text:'Tomita K, Kawahara N, Kobayashi T. Surgical strategy for spinal metastases. Spine. 2001:298-306.'},
+  {id:19, text:'Tokuhashi Y, Matsuzaki H, Oda H. A revised scoring system for preoperative evaluation of metastatic spine tumor prognosis. Spine. 2005:2186-91.'},
+  {id:20, text:'Fisher CG, DiPaola CP, Ryken TC, et al. A novel classification system for spinal instability in neoplastic disease. Spine. 2010;35:1221-9.'},
+  {id:21, text:'Laufer I, Rubin D, Lis E, et al. The NOMS framework: approach to the treatment of spinal metastatic tumors. Oncologist. 2013;18:744-51.'},
+  {id:22, text:'Pereira N, Janssen S, van Dijk E, Harris M. Development of a prognostic survival algorithm for patients with metastatic spine disease. J Bone Joint Surg Am. 2016;98:1767-1776.'},
+  {id:23, text:'Cheung W, Luk K. Pyogenic spondylitis. International Orthopaedics (SICOT). 2012;36:397-404.'},
+  {id:24, text:'Aljawadi A, Jahangir N, Jeelani A, et al. Management of pyogenic spinal infection, review of literature. Journal of Orthopaedics. 2016;16:508-512.'},
+  {id:25, text:'Su S, Tsai W, Lin C. Clinical features and outcomes of spinal tuberculosis in southern Taiwan. J Microbiol Immunol Infect. 2010:291-300.'},
+  {id:26, text:'Rajaskeran S. Spinal tuberculosis: current concepts. Global Spine Journal. 2018;8:96-108.'},
+  {id:27, text:'Bhargava SK, Gupta S. Large retropharyngeal cold abscess in an adult with respiratory distress. J Laryngol Otol. 1990:157-158.'},
+  {id:28, text:'Shetty A, Kanna R, Rajasekaran S. TB spine \u2014 current aspects on clinical presentation, diagnosis and management options. Semin Spine Surg. 2016:150.'},
+  {id:29, text:'Cortegiania A. Association between night/after-hours surgery and mortality: a systematic review and meta-analysis. British Journal of Anaesthesia. 2020.'},
+  {id:30, text:'ASIA and ISCoS International Standards Committee. The 2019 revision of the International Standards for Neurological Classification of Spinal Cord Injury (ISNCSCI) \u2014 What\'s new? Spinal Cord. 2019;57:815-817.'},
+  {id:31, text:'Evaniew N, Sharifi B, Waheed Z, et al. The influence of neurological examination timing within hours after acute traumatic spinal cord injuries. Spinal Cord. 2020;58:247-254.'},
+  {id:32, text:'Delamarter RB, Sherman J, Carr JB. Pathophysiology of spinal cord injury: recovery after immediate and delayed compression. J Bone Joint Surg Am. 1995;77:1042-1049.'},
+  {id:33, text:'Bracken MB, Shepard MJ, Holford TR, et al. Administration of methylprednisolone for 24 or 48 hours or tirilazad mesylate for 48 hours in the treatment of acute spinal cord injury (NASCIS III). JAMA. 1997;277:1597-1604.'},
+  {id:34, text:'Matsumoto T, Tamaki T, Kawakami M, et al. Early complications of high-dose methylprednisolone sodium succinate treatment in acute cervical spinal cord injury. Spine. 2001;26:426-430.'},
+  {id:35, text:'Pointillart V, Petitjean ME, Wiart L, et al. Pharmacological therapy of spinal cord injury during the acute phase. Spinal Cord. 2000;38:71-76.'},
+  {id:36, text:'Hurlbert RJ, Hadley MN, Walters BC. Pharmacological therapy for acute spinal cord injury. Neurosurgery. 2013;72:93-105.'},
+  {id:37, text:'Sciovoletto G, Tamberulla F, Laurenza L. Who is going to walk? A review of the factors influencing walking recovery after spinal cord injury. Front Hum Neurosci. 2014;8:141.'},
+  {id:38, text:'Fehlings MG, Wilson JR, Tetreault LA, et al. A clinical practice guideline for the management of patients with acute spinal cord injury: recommendations on the use of methylprednisolone sodium succinate. Global Spine J. 2017;7:203S-211S.'},
+  {id:39, text:'Kumar A, Weber MH, Gokaslan Z. Metastatic spinal cord compression and steroid treatment. Clin Spine Surg. 2017;30:156-63.'},
+  {id:40, text:'Waters RL, Adkins RH, Yakura JS. Definition of complete spinal cord injury. Paraplegia. 1991;29:573-581.'},
+  {id:41, text:'Marino RJ, Ditunno JF, Donovan WH. Neurologic recovery after traumatic spinal cord injury: data from the Model Spinal Cord Injury Systems. Arch Phys Med Rehabil. 1999;80:1391-1396.'},
+  {id:42, text:'van Middendorp JJ, Hosman AJF, Pouw MH. ASIA impairment scale conversion in traumatic SCI: is it related with the ability to walk? Spinal Cord. 2009;47:555-560.'},
+  {id:43, text:'Ditunno JF, Sipski ML, Posuniak EA. Wrist extensor recovery in traumatic quadriplegia. Arch Phys Med Rehabil. 1987;68:287-290.'},
+  {id:44, text:'Fawcett JW, Curt A, Steeves JD. Guidelines for the conduct of clinical trials for spinal cord injury as developed by the ICCP panel. Spinal Cord. 2007;45:190-205.'},
+  {id:45, text:'Waters RL, Adkins RH, Yakura JS. Donal Munro Lecture: Functional and neurologic recovery following acute SCI. J Spinal Cord Med. 1998;21:195-199.'},
+  {id:46, text:'Waters RL, Adkins RH, Yakura JS. Motor and sensory recovery following incomplete tetraplegia. Arch Phys Med Rehabil. 1994;75:306-311.'},
+  {id:47, text:'Todd NV, Burch NC. Informed consent in spinal surgery. Bone Joint J. 2019;101-B:355-360.'},
+  {id:48, text:'Ng ALC, McRobb LS, White SJ, et al. Consent for spine surgery: an observational study. ANZ Journal of Surgery. 2021;91:1220-1225.'},
+  {id:49, text:'Li RF. Separation surgery in the treatment of spinal metastases. Technology in Cancer Research & Treatment. 2022.'},
+  {id:50, text:'Ahluwalia K. McCulloch v Forth Valley Health Board [2023]: clarification by the UK Supreme Court on a medical practitioner\'s responsibilities and obligations to inform patients of reasonable alternative or variant treatments. 2024.'},
+  {id:51, text:'Ahuja CW, Nori S, Kotter MRN, et al. Traumatic spinal cord injury. Nat Rev Dis Prim. 2017;3:1-21.'},
+  {id:52, text:'Batchelor PE, Wills TE, Skeers P, et al. Meta-analysis of pre-clinical studies of early decompression in acute spinal cord injury: a battle of time and pressure. PLoS ONE. 2013;8:e72659.'}
+];
+
+function refLink(ids) {
+  if (!Array.isArray(ids)) ids = [ids];
+  return ids.map(id => `<a class="ref-link" href="#" onclick="event.preventDefault();showRefSection('references');scrollToRef(${id});" title="Reference ${id}">${id}</a>`).join(',');
+}
+
+// SLICS scoring data
+const SLICS_DATA = {
+  title: "SLICS (Subaxial Cervical Injury Classification)",
+  categories: [
+    {
+      name: "Injury Morphology",
+      options: [
+        {label: "No abnormality", score: 0},
+        {label: "Compression", score: 1},
+        {label: "Burst", score: 2},
+        {label: "Distraction", score: 3},
+        {label: "Rotation/Translation", score: 4}
+      ]
+    },
+    {
+      name: "Discoligamentous Complex (DLC)",
+      options: [
+        {label: "Intact", score: 0},
+        {label: "Suspected disruption", score: 1},
+        {label: "Disruption", score: 2}
+      ]
+    },
+    {
+      name: "Neurological Status",
+      options: [
+        {label: "Intact", score: 0},
+        {label: "Nerve root injury", score: 1},
+        {label: "Complete cord injury", score: 2},
+        {label: "Incomplete cord injury", score: 3}
+      ]
+    }
+  ],
+  modifier: {label: "Persistent cord compression", score: 1, note: "Add +1 if continuous cord compression with neurologic deficit"},
+  interpretation: function(score) {
+    if (score <= 3) return {text: "Non-surgical management", cls: "non-surgical"};
+    if (score === 4) return {text: "Surgical or non-surgical (surgeon's discretion)", cls: "equivocal"};
+    return {text: "Surgical management recommended", cls: "surgical"};
+  }
+};
+
+// TLICS scoring data
+const TLICS_DATA = {
+  title: "TLICS (Thoracolumbar Injury Classification)",
+  categories: [
+    {
+      name: "Injury Morphology",
+      options: [
+        {label: "No abnormality", score: 0},
+        {label: "Compression", score: 1},
+        {label: "Burst", score: 2},
+        {label: "Translation/Rotation", score: 3},
+        {label: "Distraction", score: 4}
+      ]
+    },
+    {
+      name: "Posterior Ligamentous Complex (PLC)",
+      options: [
+        {label: "Intact", score: 0},
+        {label: "Suspected injury", score: 2},
+        {label: "Injured", score: 3}
+      ]
+    },
+    {
+      name: "Neurological Status",
+      options: [
+        {label: "Intact", score: 0},
+        {label: "Nerve root injury", score: 2},
+        {label: "Complete cord injury", score: 2},
+        {label: "Incomplete cord injury", score: 3},
+        {label: "Cauda equina syndrome", score: 3}
+      ]
+    }
+  ],
+  interpretation: function(score) {
+    if (score <= 3) return {text: "Non-surgical management", cls: "non-surgical"};
+    if (score === 4) return {text: "Surgeon's choice (surgical or non-surgical)", cls: "equivocal"};
+    return {text: "Surgical management recommended", cls: "surgical"};
+  }
+};
+
+// SINS scoring data
+const SINS_DATA = {
+  title: "SINS (Spinal Instability Neoplastic Score)",
+  categories: [
+    {
+      name: "Location",
+      options: [
+        {label: "Junctional (occiput\u2013C2, C7\u2013T2, T11\u2013L1, L5\u2013S1)", score: 3},
+        {label: "Mobile spine (C3\u2013C6, L2\u2013L4)", score: 2},
+        {label: "Semirigid (T3\u2013T10)", score: 1},
+        {label: "Rigid (S2\u2013S5)", score: 0}
+      ]
+    },
+    {
+      name: "Pain",
+      note: "*Mechanical: pain improvement with recumbency and/or pain with movement/loading",
+      options: [
+        {label: "Mechanical pain*", score: 3},
+        {label: "Occasional pain, not mechanical", score: 1},
+        {label: "Pain-free lesion", score: 0}
+      ]
+    },
+    {
+      name: "Bone Lesion",
+      options: [
+        {label: "Lytic", score: 2},
+        {label: "Mixed (lytic/blastic)", score: 1},
+        {label: "Blastic", score: 0}
+      ]
+    },
+    {
+      name: "Radiographic Spinal Alignment",
+      options: [
+        {label: "Subluxation/translation present", score: 4},
+        {label: "De novo deformity (kyphosis/scoliosis)", score: 2},
+        {label: "Normal alignment", score: 0}
+      ]
+    },
+    {
+      name: "Vertebral Body Collapse",
+      options: [
+        {label: "> 50% collapse", score: 3},
+        {label: "< 50% collapse", score: 2},
+        {label: "No collapse with > 50% body involved", score: 1},
+        {label: "None of the above", score: 0}
+      ]
+    },
+    {
+      name: "Posterolateral Involvement of Spinal Elements",
+      note: "\u2020Facet, pedicle, or costovertebral joint fracture or replacement with tumor",
+      options: [
+        {label: "Bilateral\u2020", score: 3},
+        {label: "Unilateral\u2020", score: 1},
+        {label: "None of the above", score: 0}
+      ]
+    }
+  ],
+  interpretation: function(score) {
+    if (score <= 6) return {text: "Stable \u2014 conservative management appropriate", cls: "non-surgical"};
+    if (score <= 12) return {text: "Indeterminate stability \u2014 consider surgical consultation", cls: "equivocal"};
+    return {text: "Unstable \u2014 surgical intervention recommended", cls: "surgical"};
+  }
+};
+
+// NOMS decision matrix
+const NOMS_MATRIX = [
+  {neuro:"Low-grade ESCC + No myelopathy", onco:"Radiosensitive", mech:"Stable", syst:"-", decision:"cEBRT"},
+  {neuro:"Low-grade ESCC + No myelopathy", onco:"Radiosensitive", mech:"Unstable", syst:"-", decision:"Stabilization followed by cEBRT"},
+  {neuro:"Low-grade ESCC + No myelopathy", onco:"Radioresistant", mech:"Stable", syst:"-", decision:"SRS"},
+  {neuro:"Low-grade ESCC + No myelopathy", onco:"Radioresistant", mech:"Unstable", syst:"-", decision:"Stabilization followed by SRS"},
+  {neuro:"High-grade ESCC \u00b1 Myelopathy", onco:"Radiosensitive", mech:"Stable", syst:"-", decision:"cEBRT"},
+  {neuro:"High-grade ESCC \u00b1 Myelopathy", onco:"Radiosensitive", mech:"Unstable", syst:"-", decision:"Stabilization followed by cEBRT"},
+  {neuro:"High-grade ESCC \u00b1 Myelopathy", onco:"Radioresistant", mech:"Stable", syst:"Able to tolerate surgery", decision:"Decompression/stabilization followed by SRS"},
+  {neuro:"High-grade ESCC \u00b1 Myelopathy", onco:"Radioresistant", mech:"Stable", syst:"Unable to tolerate surgery", decision:"cEBRT"},
+  {neuro:"High-grade ESCC \u00b1 Myelopathy", onco:"Radioresistant", mech:"Unstable", syst:"Able to tolerate surgery", decision:"Decompression/stabilization followed by SRS"},
+  {neuro:"High-grade ESCC \u00b1 Myelopathy", onco:"Radioresistant", mech:"Unstable", syst:"Unable to tolerate surgery", decision:"Stabilization followed by cEBRT"}
+];
+
+// Surgical risk comparison table data
+const SURGICAL_RISKS = [
+  {risk:"Overall complications", terminology:"General risks of surgery", rates:"12.7% (Li et al., 2008)"},
+  {risk:"Bleeding/transfusion", terminology:"", rates:"0.7% (0.2\u20131.1%) (Shriver et al., 2015)"},
+  {risk:"Infection", terminology:"", rates:"0.3% (Li et al., 2008); 4.9% (1.5\u20136.0%) (Shriver et al., 2015); 1\u20139% (Akaoro and Onya, 2015)"},
+  {risk:"Durotomy", terminology:"CSF leak, spinal fluid leak", rates:"1.2% (0.5\u20131.7%) (Shriver et al., 2015); 0.7% (Li et al., 2008)"},
+  {risk:"Neurological deficit", terminology:"Nerve damage, paralysis, weakness, numbness", rates:"<1%, 1/1000"},
+  {risk:"Bowel/bladder dysfunction", terminology:"", rates:"4.8% (2.7\u20136.1%) (Shriver et al., 2015)"},
+  {risk:"Recurrence", terminology:"", rates:"1.8% of all patients; higher for spondylolisthesis 9.3%, or open laminectomy 4.1% (Guha et al., 2015)"},
+  {risk:"Future need for fusion (delayed instability)", terminology:"", rates:"<1%, 20%"},
+  {risk:"Adjacent segment disease", terminology:"", rates:"<1%, 20%"},
+  {risk:"Anaesthetic risk / Death", terminology:"", rates:"0.3\u20130.5%, 0.17% (Li et al., 2008)"},
+  {risk:"Blood clots (DVT)", terminology:"Blood clots", rates:"0.4% (Li et al., 2008)"}
+];
+
+// CES comparison
+const CES_COMPARISON = {
+  headers: ["Feature", "CES-I (Incomplete)", "CES-R (Retention)"],
+  rows: [
+    ["Back/leg pain", "Lumbar +/- leg pain", "Lumbar +/- leg pain"],
+    ["Motor/sensory", "Motor or sensory deficit in lower limbs", "Motor or sensory deficit in lower limbs"],
+    ["Bladder function", "Urinary issues of neurogenic origin including loss of desire to void, altered urinary sensation, and hesitancy", "Painless urinary retention with overflow incontinence"],
+    ["Saddle sensation", "Partial saddle anaesthesia", "Complete perianal sensory loss"],
+    ["Anal tone", "Anal sphincter tone reduced", "Faecal incontinence"]
+  ]
+};
+</script>

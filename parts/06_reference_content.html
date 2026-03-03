@@ -1,0 +1,913 @@
+<style>
+/* Theatre preparation styles */
+.theatre-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.theatre-search {
+  padding: 10px 12px;
+  border: 2px solid var(--grey-300);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  width: 100%;
+  max-width: 320px;
+}
+.theatre-search:focus {
+  outline: none;
+  border-color: var(--teal);
+}
+.filter-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--grey-300);
+  border-radius: 20px;
+  background: var(--white);
+  color: var(--grey-700);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.filter-btn:hover, .filter-btn.active {
+  background: var(--teal);
+  color: var(--white);
+  border-color: var(--teal);
+}
+.procedure-card {
+  background: var(--white);
+  border: 1px solid var(--grey-200);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+  animation: fadeIn 0.25s ease;
+}
+.procedure-card h4 {
+  color: var(--navy);
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+}
+.procedure-category {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.cat-degenerative { background: #dbeafe; color: #1e40af; }
+.cat-trauma { background: #fef2f2; color: #991b1b; }
+.cat-malignancy { background: #fef3c7; color: #92400e; }
+.cat-infection { background: #d1fae5; color: #065f46; }
+</style>
+
+<script>
+// ============================================================
+// REFERENCE TAB CONTENT
+// ============================================================
+
+let currentRefSection = 'workflow';
+
+// ------------------------------------------------------------
+// Theatre procedure data (from source document)
+// ------------------------------------------------------------
+const THEATRE_DATA = [
+  {
+    category: 'Degenerative',
+    name: 'Acute Cervical Disc Prolapse',
+    assumptions: '1\u20133 levels; No significant OPLL',
+    procedure: 'Anterior cervical discectomy and fusion',
+    instruments: ['Supine', 'X-ray control', 'Trimline Cervical Retractor (Medtronic)', 'Zevo cervical plate system (Medtronic)', 'PEEK cage (Medtronic)', 'Microscope (Carl Zeiss)']
+  },
+  {
+    category: 'Degenerative',
+    name: 'Cauda Equina Syndrome Decompression',
+    assumptions: 'Acute large protruded intervertebral disc',
+    procedure: 'Posterior decompression (laminectomy and discectomy)',
+    instruments: ['Prone', 'Wilson Frame', 'X-ray control']
+  },
+  {
+    category: 'Degenerative',
+    name: 'Acute Central Cord Surgery',
+    assumptions: 'Multi-level stenosis without structural instability',
+    procedure: 'Laminoplasty (minimal OPLL/kyphosis) OR Posterior cervical decompression and fusion (extensive OPLL/kyphosis)',
+    instruments: ['Skull Tongs + Lev\u00f3 Head Positioning System', 'X-ray control', 'Sandwich bed turning to prone', 'Laminoplasty \u2192 Arch plates (Synthes)', 'Fusion \u2192 Vertex cervical screws (Medtronic) + Bone mill']
+  },
+  {
+    category: 'Trauma',
+    name: 'Cervical Facet Dislocation',
+    assumptions: 'Select approach by reduction success, disc status, and mechanical stability',
+    procedure: 'Anterior reduction/fusion; Posterior reduction/fixation; Combined anterior\u2013posterior if needed',
+    instruments: ['9-1 OT', 'X-ray control', 'Anterior: Trimline + Zevo + PEEK + Microscope (Medtronic/Zeiss)', 'Posterior: Skull tongs + Lev\u00f3 + Sandwich turning + Vertex screws + Bone mill (Medtronic)']
+  },
+  {
+    category: 'Trauma',
+    name: 'Ankylosing Spondylitis Fracture (Cervical)',
+    assumptions: 'Often involves 3 spinal columns; No significant anterior column failure',
+    procedure: 'Posterior decompression and fusion (\u22653 levels above and below)',
+    instruments: ['9-1 OT', 'Skull Tongs + Lev\u00f3 Head Positioning System', 'X-ray control', 'Sandwich bed turning to prone', 'Vertex cervical screws (Medtronic)', 'Bone mill']
+  },
+  {
+    category: 'Trauma',
+    name: 'Thoracolumbar Fracture \u00b1 Dislocation',
+    assumptions: 'No significant anterior column failure',
+    procedure: 'Posterior decompression + instrumentation (\u22652 levels above and below)',
+    instruments: ['9-1 OT', 'Prone \u2014 arms abducted (below T5\u20137), arms by side (above T5\u20137)', 'OSI table', 'X-ray control', 'Sandwich bed turning to prone', 'Legacy screws (Medtronic)', 'Alternative: USS Schanz Screws (Synthes) / Expedium Screws (Synthes)']
+  },
+  {
+    category: 'Malignancy',
+    name: 'Metastatic Cord Compression (Thoracolumbar)',
+    assumptions: 'No significant anterior column failure',
+    procedure: 'Posterior decompression \u00b1 instrumentation \u00b1 costotransversectomy (\u22652 levels above and below)',
+    instruments: ['Prone', 'OSI table', 'X-ray control', 'Legacy Screws (Medtronic)']
+  },
+  {
+    category: 'Infection',
+    name: 'Cervical Epidural Abscess',
+    assumptions: 'No significant anterior (spondylodiscitis) component',
+    procedure: 'Posterior decompression and drainage (laminectomy)',
+    instruments: ['Prone', 'Skull Tongs + Lev\u00f3 Head Positioning System', 'X-ray control']
+  },
+  {
+    category: 'Infection',
+    name: 'Thoracolumbar Epidural Abscess',
+    assumptions: 'No significant psoas abscess component',
+    procedure: 'Posterior decompression (laminectomy)',
+    instruments: ['Prone \u2014 arms abducted (below T5\u20137), arms by side (above T5\u20137)', 'Wilson Frame', 'X-ray control']
+  },
+  {
+    category: 'Infection',
+    name: 'Acute Septic Cervical Spondylodiscitis \u00b1 Spondylitis',
+    assumptions: 'Plan anterior reconstruction \u00b1 graft/halo as needed',
+    procedure: 'ACDF \u00b1 corpectomy \u00b1 iliac crest bone graft \u00b1 halo ring',
+    instruments: ['Supine', 'X-ray control', 'Trimline Cervical Retractor (Medtronic)', 'Zevo cervical plate system (Medtronic)', 'T2 Stratosphere expandable corpectomy cage (Medtronic)', 'PEEK cage (Medtronic)', 'Microscope (Carl Zeiss)', 'Post-op rigid neck collar', '\u00b1 Iliac crest bone graft harvest', 'Halo ring']
+  }
+];
+
+// Common instruments data
+const COMMON_INSTRUMENTS = {
+  general: ['Spine rongeurs (Lumbar A)', 'Rhoton Microdissector', 'Sonopet (ultrasonic burr) or Diamond Burr 3mm'],
+  haemostatic: ['Floseal (bovine-derived gelatin + human-derived thrombin)', 'Surgicel (oxidized regenerated cellulose)', 'Tachosil (collagen sponge coated with fibrinogen and thrombin)'],
+  boneGraft: ['I-Factor (P-15 osteogenic cell binding peptide + hydroxyapatite)', 'BMP-2 / BMP-7 (bone morphogenic protein)', 'chronOS (pure beta-tricalcium phosphate)', 'Demineralised bone graft'],
+  boneTools: ['Bone mill (autologous bone graft preparation)', 'Saw blade & core power instrument', 'Gouge (osteotomes) & chisel set', 'Impactor and offset punch', 'Caliper']
+};
+
+// Contact data  (password: change CONTACTS_PASSWORD below as needed)
+const CONTACTS_PASSWORD = 'PYNEH';
+const CONTACTS_DATA = [
+  {group: 'Medtronic', contacts: [
+    {name: 'Andy Wong', phone: '9737 3097'},
+    {name: 'Andrew Chan', phone: '9801 3714'}
+  ]},
+  {group: 'Nuvasive (Kinwood)', contacts: [
+    {name: 'Angus Lee', phone: '5408 0408'},
+    {name: 'Liz Lui', phone: '5408 3840'},
+    {name: 'Wilson Lam', phone: '9103 1455'}
+  ]},
+  {group: 'Synthes (Johnson & Johnson)', contacts: [
+    {name: 'Alan Hui', phone: '6098 9805'},
+    {name: 'Joyce Au', phone: '9588 7500'}
+  ]},
+  {group: 'PYNEH Sterile Supplies Department (SSD)', note: 'Day contact: Ms. YP Lee (EN)', contacts: [
+    {name: 'Phone 1', phone: '2595 6050'},
+    {name: 'Phone 2', phone: '2595 6701'},
+    {name: 'WhatsApp', phone: '6460 1445'}
+  ]}
+];
+
+// Theatre filter state
+var theatreFilter = 'All';
+var theatreSearch = '';
+
+// ============================================================
+// CORE FUNCTIONS
+// ============================================================
+
+function showRefSection(section) {
+  currentRefSection = section;
+  var btns = document.querySelectorAll('.ref-nav-btn');
+  btns.forEach(function(b) {
+    b.classList.remove('active');
+    var onclick = b.getAttribute('onclick') || '';
+    if (onclick.indexOf("'" + section + "'") !== -1) {
+      b.classList.add('active');
+    }
+  });
+
+  var el = document.getElementById('refContent');
+  switch(section) {
+    case 'workflow': el.innerHTML = renderRefWorkflow(); break;
+    case 'timing': el.innerHTML = renderRefTiming(); break;
+    case 'assessment': el.innerHTML = renderRefAssessment(); break;
+    case 'steroids': el.innerHTML = renderRefSteroids(); break;
+    case 'consent': el.innerHTML = renderRefConsent(); break;
+    case 'theatre': el.innerHTML = renderRefTheatre(); break;
+    case 'scores': el.innerHTML = renderRefScores(); calcState = {}; break;
+    case 'contacts': el.innerHTML = renderRefContacts(); break;
+    case 'references': el.innerHTML = renderRefReferences(); break;
+    default: el.innerHTML = '';
+  }
+
+  // Post-render initialisation
+  if (section === 'steroids') {
+    setTimeout(renderDexTaper, 0);
+  }
+  if (section === 'theatre') {
+    theatreFilter = 'All';
+    theatreSearch = '';
+  }
+}
+
+function scrollToRef(id) {
+  // Switch to reference tab if needed
+  if (currentTab !== 'reference') {
+    currentTab = 'reference';
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+    document.getElementById('tabReference').classList.add('active');
+    document.getElementById('contentReference').classList.add('active');
+  }
+  if (currentRefSection !== 'references') {
+    showRefSection('references');
+  }
+  setTimeout(function() {
+    var el = document.getElementById('ref-item-' + id);
+    if (el) {
+      el.scrollIntoView({behavior: 'smooth', block: 'center'});
+      el.style.transition = 'background 1.6s ease';
+      el.style.background = '#fff4cc';
+      setTimeout(function() { el.style.background = ''; }, 1600);
+    }
+  }, 150);
+}
+
+function toggleCollapsible(header) {
+  var c = header.closest('.collapsible');
+  if (c) c.classList.toggle('open');
+}
+
+// ============================================================
+// SECTION: WORKFLOW
+// ============================================================
+function renderRefWorkflow() {
+  return `
+    <div class="section-header">On-call Workflow</div>
+    <div class="step-card">
+      <p style="font-size:0.85rem;color:var(--grey-600);margin-bottom:12px;">Follow this structured approach when managing emergency spine cases:</p>
+      <ol class="content-list">
+        <li><strong>Attend patient</strong><br><span style="color:var(--grey-500);font-size:0.82rem;">Emergency admission, urgent consult, or known case that deteriorates</span></li>
+        <li><strong>History &amp; Physical Examination</strong><br><span style="color:var(--grey-500);font-size:0.82rem;">Focused history and neurological examination</span></li>
+        <li><strong>Formulate working diagnosis</strong><br><span style="color:var(--grey-500);font-size:0.82rem;">Differential diagnosis based on clinical findings</span></li>
+        <li><strong>Arrange &amp; evaluate imaging</strong><br><span style="color:var(--grey-500);font-size:0.82rem;">MRI &plusmn; CT urgently</span></li>
+        <li><strong>Confirm diagnosis</strong></li>
+        <li><strong>On-call team decision</strong>
+          <ul style="margin-top:6px;">
+            <li>Surgery decided for same night or early next morning</li>
+            <li>Early (but not emergent) surgery may be beneficial</li>
+            <li>Surgery not indicated</li>
+          </ul>
+        </li>
+        <li><strong>If surgery offered &rarr; Obtain consent</strong>
+          <ul style="margin-top:6px;">
+            <li>Patient agrees &rarr; Prepare theatre</li>
+            <li>Patient declines &rarr; Non-operative management</li>
+          </ul>
+        </li>
+      </ol>
+      <div class="info-box" style="margin-top:12px;">If early (but not emergent) surgery may be beneficial and the patient does not agree to same-night surgery, <strong>review case next day and re-evaluate urgency</strong>.</div>
+    </div>`;
+}
+
+// ============================================================
+// SECTION: TIMING
+// ============================================================
+function renderRefTiming() {
+  return `
+    <div class="section-header">Timing of Operation</div>
+    <div class="step-card">
+      <p>Deciding when to perform spine surgery is one of the most sensitive aspects of patient management.</p>
+      <p>Each case must be evaluated on its own merits, considering both the clinical urgency and the practical realities of surgical timing. The factors listed carry different weights depending on the specific circumstances.</p>
+
+      <h3>Clinical Factors</h3>
+      <ul class="content-list">
+        <li><strong>Patient:</strong> Age, premorbid function, comorbidities</li>
+        <li><strong>Disease:</strong> Pathology, prognosis, neurological trajectory</li>
+        <li><strong>Safety:</strong> After-hours surgery associated with higher risk of patient mortality ${refLink(29)}</li>
+      </ul>
+
+      <div class="grey-info-section">
+        <h3 style="margin-bottom:8px;">Administrative Factors
+          <span class="info-icon" tabindex="0">i</span>
+        </h3>
+        <ul class="content-list">
+          <li>Anaesthetic and theatre staff support</li>
+          <li>Operating theatre availability</li>
+          <li>Departmental manpower constraints</li>
+        </ul>
+        <div class="tooltip-text">These administrative factors are highly variable depending on hospital and department structure.</div>
+      </div>
+
+      <div class="info-box" style="margin-top:16px;">
+        <strong>Key principle:</strong> Balance clinical urgency with administrative realities on a case-by-case basis.
+      </div>
+    </div>`;
+}
+
+// ============================================================
+// SECTION: ASSESSMENT (ASIA)
+// ============================================================
+function renderRefAssessment() {
+  return `
+    <div class="section-header">Neurological Assessment (ASIA)</div>
+    <div class="step-card">
+      <div class="warning-box" style="margin-bottom:12px;">
+        <div class="warn-title">First Step</div>
+        Exclude persistent spinal shock and check the bulbocavernosus reflex before formal ASIA classification. ${refLink(31)}
+      </div>
+      <p>The ASIA (American Spinal Injury Association) Impairment Scale is the standard tool for assessing neurological function in spinal cord injuries. ${refLink(30)} While a full assessment may not always be feasible in acute cases, its principles are still applicable.</p>
+      <p>Spinal shock is characterised by flaccid, areflexic paralysis with an absent bulbocavernosus reflex. This is distinct from neurogenic shock and typically resolves within 48 hours. Return of the bulbocavernosus reflex indicates the end of spinal shock.</p>
+    </div>
+
+    <div class="collapsible open">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        ASIA Classification Steps
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <a href="https://asia-spinalinjury.org/wp-content/uploads/2019/04/ASIA-ISCOS-IntlWorksheet_2019.pdf" target="_blank" rel="noopener" class="asia-chart-thumb">
+          <div class="asia-chart-icon">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="8" y="4" width="32" height="40" rx="3" fill="#fff" stroke="#2a7d8a" stroke-width="2"/>
+              <rect x="14" y="12" width="8" height="2" rx="1" fill="#2a7d8a" opacity="0.6"/>
+              <rect x="14" y="17" width="20" height="1.5" rx="0.75" fill="#ccc"/>
+              <rect x="14" y="21" width="18" height="1.5" rx="0.75" fill="#ccc"/>
+              <rect x="14" y="25" width="20" height="1.5" rx="0.75" fill="#ccc"/>
+              <rect x="14" y="29" width="16" height="1.5" rx="0.75" fill="#ccc"/>
+              <rect x="14" y="33" width="19" height="1.5" rx="0.75" fill="#ccc"/>
+              <text x="24" y="44" text-anchor="middle" font-size="5" fill="#2a7d8a" font-weight="600">PDF</text>
+            </svg>
+          </div>
+          <div class="asia-chart-label">
+            <span class="asia-chart-title">ASIA/ISCoS 2019 ISNCSCI Worksheet</span>
+            <span class="asia-chart-hint">Tap to view full chart (PDF)</span>
+          </div>
+        </a>
+        <ol class="content-list">
+          <li><strong>Exclude persistent spinal shock</strong><br>Check for the bulbocavernosus reflex</li>
+          <li><strong>Determine neurological level of injury (NLI)</strong>
+            <ul style="margin-top:6px;">
+              <li>Test pin prick sensation in descending manner on one side of the body</li>
+              <li>If abnormal sensation is found, test the same dermatome on the contralateral side</li>
+              <li>Test other sensory modalities (e.g. light touch) to identify the most caudal intact dermatome</li>
+            </ul>
+          </li>
+          <li><strong>Determine motor level</strong>
+            <ul style="margin-top:6px;">
+              <li>Test key muscles at level corresponding to sensory level and at additional levels rostral and caudal</li>
+              <li>Most caudal muscle with grade &ge;3 and all muscles rostral with grade 5</li>
+              <li>If no myotome is present, motor level is presumed same as sensory level</li>
+            </ul>
+          </li>
+          <li><strong>Determine presence of sacral sparing</strong>
+            <ul style="margin-top:6px;">
+              <li>S4&ndash;5 sensation for light-touch and pin-prick</li>
+              <li>Deep anal pressure (DAP)</li>
+              <li>Voluntary anal contraction (VAC)</li>
+            </ul>
+          </li>
+          <li><strong>Classify injury and assign AIS grade (A&ndash;E)</strong></li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="collapsible open">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        AIS Grades
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <table class="data-table">
+          <thead><tr><th>AIS</th><th>Definition</th><th>SCI Lesion</th></tr></thead>
+          <tbody>
+            <tr><td><strong>A</strong></td><td>No sensory or motor function preserved in sacral segments S4&ndash;5</td><td>Complete</td></tr>
+            <tr><td><strong>B</strong></td><td>Sensory but not motor function preserved below neurological level, includes S4&ndash;5</td><td>Incomplete</td></tr>
+            <tr><td><strong>C</strong></td><td>Motor function preserved; more than half key muscles below NLI have grade &lt;3</td><td>Incomplete</td></tr>
+            <tr><td><strong>D</strong></td><td>Motor function preserved; at least half key muscles below NLI have grade &ge;3</td><td>Incomplete</td></tr>
+            <tr><td><strong>E</strong></td><td>Motor and sensory function normal</td><td>None</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:0.78rem;color:var(--grey-500);margin-top:8px;">Source: ASIA/ISCoS 2019 revision of ISNCSCI ${refLink(30)}</p>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Functional Walking Prediction by AIS Grade
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <table class="data-table">
+          <thead><tr><th>AIS / Feature at Admission</th><th>Community Walking at 1 Year</th></tr></thead>
+          <tbody>
+            <tr><td>AIS A &mdash; Cervical</td><td>0%</td></tr>
+            <tr><td>AIS A &mdash; Thoracic/Lumbar</td><td>5&ndash;8.5%</td></tr>
+            <tr><td>AIS B &mdash; Light touch only</td><td>0&ndash;33%</td></tr>
+            <tr><td>AIS B &mdash; Light touch + pinprick</td><td>66&ndash;89%</td></tr>
+            <tr><td>AIS C &mdash; Age &lt;50 years</td><td>71&ndash;91%</td></tr>
+            <tr><td>AIS C &mdash; Age &gt;50 years</td><td>25&ndash;42%</td></tr>
+            <tr><td>AIS D &mdash; Age &lt;50 years</td><td>~100%</td></tr>
+            <tr><td>AIS D &mdash; Age &gt;50 years</td><td>80&ndash;100%</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:0.78rem;color:var(--grey-500);margin-top:8px;">Sources: ${refLink([37,40,41,42,45,46])}</p>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+// SECTION: CORTICOSTEROIDS
+// ============================================================
+function renderRefSteroids() {
+  return `
+    <div class="section-header">Corticosteroids</div>
+
+    <div class="collapsible open">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Dexamethasone for MESCC (Malignancy)
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <ul class="content-list">
+          <li><strong>Indication:</strong> Metastatic epidural spinal cord compression (MESCC) before definitive treatment</li>
+          <li><strong>Regimen:</strong> Dexamethasone 10 mg IV bolus, then 16 mg PO daily</li>
+          <li><strong>After definitive treatment:</strong> Halve total daily dose every 3 days</li>
+          <li><strong>Precautions:</strong> Co-administer proton-pump inhibitors (PPI); consider checking HBsAg</li>
+          <li><strong>Side effects:</strong> Diabetes, myopathy, osteoporosis, gastritis, Cushing&rsquo;s syndrome, thromboembolic events, immunosuppression, sepsis, psychiatric disorder</li>
+        </ul>
+        <p style="font-size:0.78rem;color:var(--grey-500);margin-top:4px;">${refLink(39)}</p>
+
+        <div class="steroid-calc">
+          <label for="dexTaperSteps">Taper periods (every 3 days):</label>
+          <input type="number" id="dexTaperSteps" value="5" min="1" max="8" oninput="renderDexTaper()">
+          <div id="dexTaperResult" class="steroid-result"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Methylprednisolone for Traumatic SCI (AO Spine Option)
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <div class="danger-box">
+          <strong>Corticosteroid use in traumatic SCI is not standard of care.</strong> High-dose methylprednisolone is an optional, case-selected protocol only.
+        </div>
+
+        <p>The NASCIS trials examined high-dose methylprednisolone in acute SCI ${refLink(33)} but faced criticism for methodology, particularly post-hoc analysis. Subsequent trials have struggled to replicate findings. ${refLink(34)}</p>
+        <p>A 48-hour infusion of MP poses risks including infections, GI ulcers, prolonged ICU stays, and increased mortality. ${refLink(35)}</p>
+        <p>In 2013, the Congress of Neurological Surgeons issued a <strong>Level 1 recommendation against</strong> using methylprednisolone for acute SCI. ${refLink(36)} High-dose steroids are now considered an option rather than standard treatment. ${refLink(37)}</p>
+
+        <h3>AO Spine Regimen ${refLink(38)}</h3>
+        <ul class="content-list">
+          <li><strong>Indication:</strong> Non-penetrating traumatic SCI within &le;8 hours of injury</li>
+          <li><strong>Drug:</strong> Methylprednisolone (MP)</li>
+          <li><strong>Dosage:</strong> 30 mg/kg IV over 1 hour, then 5.4 mg/kg/hour for 23 hours</li>
+        </ul>
+
+        <h3>Contra-indications</h3>
+        <ul class="content-list">
+          <li>Multiply injured patient</li>
+          <li>Penetrating spinal cord injury</li>
+          <li>Glucose intolerance or diabetes mellitus</li>
+          <li>Multiple medical comorbidities or impaired immune system</li>
+          <li>Elderly patients</li>
+          <li>Pregnant patients</li>
+          <li>Complete thoracic SCI (ASIA A)</li>
+        </ul>
+
+        <div class="steroid-calc">
+          <label for="mpWeight">Patient weight (kg):</label>
+          <input type="number" id="mpWeight" value="" min="30" max="200" placeholder="e.g. 70" oninput="renderMpDose()">
+          <label for="mpHours">Hours since injury:</label>
+          <input type="number" id="mpHours" value="" min="0" max="24" placeholder="e.g. 4" oninput="renderMpDose()">
+          <div id="mpDoseResult" class="steroid-result"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-box" style="margin-top:12px;">
+      <strong>Summary:</strong> Steroids are generally <strong>not recommended</strong> for traumatic SCI. Steroids are generally <strong>recommended</strong> for malignant epidural cord compression. ${refLink([38,39])}
+    </div>`;
+}
+
+// Dexamethasone taper calculator
+function renderDexTaper() {
+  var el = document.getElementById('dexTaperResult');
+  if (!el) return;
+  var steps = Math.max(1, Math.min(8, Number(document.getElementById('dexTaperSteps').value) || 5));
+  var dose = 16;
+  var html = '<div style="font-weight:700;margin-bottom:8px;color:var(--navy);">Suggested Taper Schedule</div>';
+  html += '<div class="dose-line"><span class="dose-value">Day 0:</span> Dexamethasone 10 mg IV bolus</div>';
+  html += '<div class="dose-line"><span class="dose-value">Ongoing:</span> 16 mg PO daily until definitive treatment</div>';
+  html += '<div style="margin:8px 0 4px;font-size:0.8rem;color:var(--grey-500);">After definitive treatment:</div>';
+  for (var i = 0; i < steps; i++) {
+    var dayStart = (i * 3) + 1;
+    var dayEnd = (i * 3) + 3;
+    var display = dose < 1 ? dose.toFixed(2) : (dose < 4 ? dose.toFixed(1) : dose.toFixed(0));
+    html += '<div class="dose-line"><span class="dose-value">Days ' + dayStart + '\u2013' + dayEnd + ':</span> ' + display + ' mg/day</div>';
+    dose = dose / 2;
+  }
+  html += '<div style="margin-top:8px;font-size:0.78rem;color:var(--grey-500);">Halve total daily dose every 3 days after definitive treatment.</div>';
+  el.innerHTML = html;
+}
+
+// Methylprednisolone dose calculator
+function renderMpDose() {
+  var el = document.getElementById('mpDoseResult');
+  if (!el) return;
+  var weight = Number(document.getElementById('mpWeight').value);
+  var hoursVal = document.getElementById('mpHours').value.trim();
+
+  if (!weight || weight < 30) {
+    el.innerHTML = '<div style="font-size:0.85rem;color:var(--grey-500);">Enter patient weight to calculate dosing.</div>';
+    return;
+  }
+
+  var bolus = weight * 30;
+  var infusionRate = weight * 5.4;
+  var infusionTotal = infusionRate * 23;
+
+  var html = '<div style="font-weight:700;margin-bottom:8px;color:var(--navy);">Calculated Dosing</div>';
+  html += '<div class="dose-line"><span class="dose-value">Bolus:</span> ' + bolus.toFixed(0) + ' mg IV over 1 hour</div>';
+  html += '<div class="dose-line"><span class="dose-value">Infusion:</span> ' + infusionRate.toFixed(1) + ' mg/hour for 23 hours</div>';
+  html += '<div class="dose-line"><span class="dose-value">Total infusion:</span> ' + infusionTotal.toFixed(0) + ' mg</div>';
+
+  if (hoursVal !== '') {
+    var h = Number(hoursVal);
+    if (h <= 8) {
+      html += '<div class="info-box" style="margin-top:8px;"><strong>Within &le;8h protocol window</strong> (if no contraindications).</div>';
+    } else {
+      html += '<div class="warning-box" style="margin-top:8px;"><div class="warn-title">Outside protocol window</div>Beyond &le;8 hours from injury. Guideline does not support routine use beyond this window.</div>';
+    }
+  }
+
+  el.innerHTML = html;
+}
+
+// ============================================================
+// SECTION: CONSENTING
+// ============================================================
+function renderRefConsent() {
+  return `
+    <div class="section-header">Consenting</div>
+    <div class="step-card">
+      <p style="font-size:0.85rem;">Obtaining valid consent requires ensuring the patient is fully informed and free to decide without undue pressure. Informed consent is possible if the patient is clearly informed about:</p>
+      <ul class="content-list" style="font-size:0.85rem;">
+        <li>The objectives and benefits of the proposed treatment</li>
+        <li>Realistic expectations regarding outcomes</li>
+        <li>The risks involved, including rare but significant complications</li>
+        <li>Alternative treatment options</li>
+      </ul>
+    </div>
+
+    <div class="collapsible open">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Objectives &amp; Benefits
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <p style="font-size:0.85rem;">The specific surgical approach, implant types, and number of spinal levels may vary based on intra-operative findings. Main goals typically include:</p>
+        <ul class="content-list" style="font-size:0.85rem;">
+          <li><strong>Decompression:</strong> Relieving pressure on the spinal cord or nerves</li>
+          <li><strong>Stabilisation:</strong> Providing stability through instrumentation and/or fusion</li>
+          <li><strong>Control of local tumour or infection:</strong> Managing or reducing tumour/sepsis in the affected area</li>
+          <li><strong>Obtaining specimens:</strong> Collecting tissue samples for further diagnosis</li>
+        </ul>
+        <div class="info-box" style="font-size:0.85rem;">The primary benefit of decompression is to <strong>prevent further neurological deterioration</strong>. Neurological improvement is possible but cannot be guaranteed.</div>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Expectations &amp; Recovery
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body" style="font-size:0.85rem;">
+        <div class="warning-box" style="margin-bottom:12px;">
+          <div class="warn-title">Consent framing</div>
+          Statistics shown are population-level estimates, not predictions for an individual patient.<br><br>
+          Outcomes vary with pathology, baseline neurology, comorbidities, timing, imaging, and treatment response. Use figures to structure discussion, not to script promises.<br><br>
+          Final consent discussion should be individualized and documented by the treating clinician/team.
+        </div>
+        <p>The degree of recovery depends on mechanism and level of injury, age, comorbidities, timing of intervention, and most crucially, the <strong>severity of neurological injury</strong>.</p>
+        <p>The key factor in predicting outcomes is whether the injury is <strong>complete or incomplete</strong>. Sacral sparing is the most reliable indicator of an incomplete injury. ${refLink(40)}</p>
+
+        <h3 style="font-size:0.9rem;">Complete Injury</h3>
+        <ul class="content-list">
+          <li><strong>Tetraplegics:</strong> Among ASIA A patients, only 13% convert to incomplete status by 1 year ${refLink(41)}, and conversion does not always lead to significant functional improvement ${refLink(42)}</li>
+          <li>Only ~2.3% of initially complete patients progress to ASIA D ${refLink(43)}</li>
+          <li>Most recover function in 2&ndash;3 segments below the initial neurological level ${refLink(43)}</li>
+          <li><strong>Paraplegics:</strong> Typically experience less recovery than tetraplegics ${refLink(44)}</li>
+          <li>Conversion rate from ASIA A to B or D is about half that of tetraplegics ${refLink(44)}</li>
+          <li>Most paraplegics (73%) do not experience a change in neurological level at 1 year ${refLink(45)}</li>
+        </ul>
+
+        <h3 style="font-size:0.9rem;">Incomplete Injury</h3>
+        <ul class="content-list">
+          <li>Patients with incomplete injuries have a higher likelihood of improvement</li>
+          <li>Functional walking is more likely in ASIA B patients if injury preserves light touch and pinprick sensations, suggesting corticospinal tracts are more likely intact ${refLink(37)}</li>
+        </ul>
+
+        <h3 style="font-size:0.9rem;">Recovery Time</h3>
+        <ul class="content-list">
+          <li>Most neurological recovery occurs within the first <strong>6&ndash;9 months</strong>, typically plateauing at <strong>12&ndash;18 months</strong> ${refLink([43,40,45,46])}</li>
+          <li>Rapid early improvement correlates with greater final recovery ${refLink(3)}</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Key Complications
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body" style="font-size:0.85rem;">
+        <p>Complications are generally higher in emergency spine surgeries. Patients may be in systemic inflammation impairing haemostasis, and operative time can be unpredictable. ${refLink(47)}</p>
+
+        <div class="info-box" style="margin:12px 0;">
+          <strong>Haemorrhage</strong><br>
+          Bleeding is often more significant in emergency operations due to infections, malignancy, and inflammation (e.g. ankylosing spondylitis). Hypervascular tumours (renal cell, hepatocellular carcinoma) pose high risk. Pre-operative embolisation is not always feasible due to urgency. Heavy bleeding may necessitate massive transfusion, potentially leading to DIC, haemodynamic instability and death.
+        </div>
+
+        <div class="info-box" style="margin:12px 0;">
+          <strong>Neurological Deficits</strong><br>
+          Damage to neurological structures can occur due to positioning, instrumentation, manipulation, or spinal cord ischaemia. Explain risks in clear terms: potential weakness, paralysis, loss of sensation, new abnormal sensations, gait difficulties, bladder/bowel dysfunction, and sexual dysfunction.
+        </div>
+
+        <div class="info-box" style="margin:12px 0;">
+          <strong>Dural Tears</strong><br>
+          The dura is the outer membrane containing CSF, extending to S2. Tears can be traumatic or iatrogenic, especially when dura adheres to ligamentum flavum or pathological tissue. Unrepaired tears can lead to CSF leaks, postural headaches, dizziness, vomiting, and longer-term complications (fistula, meningitis, wound infections).
+        </div>
+
+        <div class="info-box" style="margin:12px 0;">
+          <strong>Persistent, Recurrent, and New Pathology</strong><br>
+          In spinal metastases, surgery is often palliative. Complete excision with clear margins is rarely feasible. Tumour recurrence can occur despite surgery and adjuvant therapy. Incomplete infection drainage may leave persistent foci. Decompressive surgeries can cause mechanical instability. Implant loosening, breakage, migration, delayed/failed fusion, and adjacent segment degeneration may develop.
+        </div>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Alternatives to Surgery
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <p>Patients should always be informed of non-operative options, regardless of how surgically amenable the pathology appears.</p>
+        <ul class="content-list">
+          <li><strong>Trauma:</strong> Orthoses and immobilisation</li>
+          <li><strong>Infections:</strong> Antimicrobial therapy or percutaneous drainage</li>
+          <li><strong>Malignancies:</strong> Chemotherapy or radiotherapy</li>
+        </ul>
+        <p>Patients should also be informed about the natural progression of the disease and potential consequences of opting for non-operative treatment.</p>
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Surgical Risk Comparison Table
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <table class="data-table">
+          <thead><tr><th>Risk</th><th>Terminology</th><th>Rates Quoted</th></tr></thead>
+          <tbody>
+            ${SURGICAL_RISKS.map(function(r) {
+              return '<tr><td><strong>' + r.risk + '</strong></td><td>' + r.terminology + '</td><td style="font-size:0.78rem;">' + r.rates + '</td></tr>';
+            }).join('')}
+          </tbody>
+        </table>
+        <p style="font-size:0.78rem;color:var(--grey-500);margin-top:8px;">Source: ${refLink(48)}</p>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+// SECTION: THEATRE PREPARATION
+// ============================================================
+function renderRefTheatre() {
+  return `
+    <div class="section-header">Theatre Preparation</div>
+    <div class="step-card">
+      <div class="warning-box" style="margin-bottom:12px;">
+        <div class="warn-title">Local operational information</div>
+        Institution-specific theatre preparation steps, equipment availability, booking processes, and staff workflows may vary and may change over time.<br><br>
+        Verify current theatre protocols, escalation pathways, implant/instrument availability, and local responsibilities with your department and operating team before use. Listing here does not imply institutional endorsement unless explicitly stated by your service.
+      </div>
+      <p style="font-size:0.85rem;color:var(--grey-600);">The Sterile Supplies Department (SSD) generally stocks most instruments needed for acute spine conditions. However, if non-stock or non-consigned implants are required, coordinate with Sales Representatives for timely delivery. A post-op ICU bed reservation will be needed for most acute spine cases.</p>
+    </div>
+
+    <div class="theatre-filters">
+      <input type="text" class="theatre-search" placeholder="Search procedures..." oninput="searchTheatre(this.value)">
+    </div>
+    <div class="theatre-filters">
+      <button class="filter-btn active" onclick="filterTheatre('All')">All</button>
+      <button class="filter-btn" onclick="filterTheatre('Degenerative')">Degenerative</button>
+      <button class="filter-btn" onclick="filterTheatre('Trauma')">Trauma</button>
+      <button class="filter-btn" onclick="filterTheatre('Malignancy')">Malignancy</button>
+      <button class="filter-btn" onclick="filterTheatre('Infection')">Infection</button>
+    </div>
+
+    <div id="theatreProcedures">${renderTheatreProcedureCards(THEATRE_DATA)}</div>
+
+    <div class="collapsible" style="margin-top:16px;">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        Common Instruments (SSD Stock)
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <p style="font-size:0.82rem;color:var(--grey-600);margin-bottom:8px;">Normally included by SSD or prepared by theatre nurses without additional request:</p>
+        <h4 style="font-size:0.85rem;color:var(--navy);margin:8px 0 4px;">General Spine Instruments</h4>
+        <ul class="content-list">${COMMON_INSTRUMENTS.general.map(function(i) { return '<li>' + i + '</li>'; }).join('')}</ul>
+        <h4 style="font-size:0.85rem;color:var(--navy);margin:8px 0 4px;">Haemostatic Adjuncts</h4>
+        <ul class="content-list">${COMMON_INSTRUMENTS.haemostatic.map(function(i) { return '<li>' + i + '</li>'; }).join('')}</ul>
+        <h4 style="font-size:0.85rem;color:var(--navy);margin:8px 0 4px;">Bone Graft Substitutes</h4>
+        <ul class="content-list">${COMMON_INSTRUMENTS.boneGraft.map(function(i) { return '<li>' + i + '</li>'; }).join('')}</ul>
+        <h4 style="font-size:0.85rem;color:var(--navy);margin:8px 0 4px;">Bone Graft Harvesting &amp; Implantation</h4>
+        <ul class="content-list">${COMMON_INSTRUMENTS.boneTools.map(function(i) { return '<li>' + i + '</li>'; }).join('')}</ul>
+      </div>
+    </div>`;
+}
+
+function renderTheatreProcedureCards(procedures) {
+  if (procedures.length === 0) {
+    return '<p style="color:var(--grey-500);text-align:center;padding:20px;">No matching procedures found.</p>';
+  }
+  return procedures.map(function(p) {
+    var catClass = 'cat-' + p.category.toLowerCase();
+    return '<div class="procedure-card">' +
+      '<span class="procedure-category ' + catClass + '">' + p.category + '</span>' +
+      '<h4>' + p.name + '</h4>' +
+      (p.assumptions ? '<p style="font-size:0.82rem;color:var(--grey-600);"><strong>Assumptions:</strong> ' + p.assumptions + '</p>' : '') +
+      '<p style="font-size:0.82rem;"><strong>Procedure:</strong> ' + p.procedure + '</p>' +
+      '<p style="font-size:0.82rem;margin-bottom:4px;"><strong>Instruments:</strong></p>' +
+      '<ul class="content-list" style="font-size:0.82rem;">' + p.instruments.map(function(i) { return '<li>' + i + '</li>'; }).join('') + '</ul>' +
+      '</div>';
+  }).join('');
+}
+
+function filterTheatre(category) {
+  theatreFilter = category;
+  applyTheatreFilter();
+}
+
+function searchTheatre(query) {
+  theatreSearch = query.toLowerCase();
+  applyTheatreFilter();
+}
+
+function applyTheatreFilter() {
+  var filtered = THEATRE_DATA.filter(function(p) {
+    if (theatreFilter !== 'All' && p.category !== theatreFilter) return false;
+    if (theatreSearch) {
+      var searchable = (p.category + ' ' + p.name + ' ' + (p.assumptions || '') + ' ' + p.procedure + ' ' + p.instruments.join(' ')).toLowerCase();
+      return searchable.indexOf(theatreSearch) !== -1;
+    }
+    return true;
+  });
+  document.getElementById('theatreProcedures').innerHTML = renderTheatreProcedureCards(filtered);
+  // Update filter buttons
+  document.querySelectorAll('.filter-btn').forEach(function(b) {
+    b.classList.remove('active');
+    if (b.textContent.trim() === theatreFilter) b.classList.add('active');
+  });
+}
+
+// ============================================================
+// SECTION: SCORING SYSTEMS
+// ============================================================
+function renderRefScores() {
+  return `
+    <div class="section-header">Scoring Systems</div>
+
+    <div class="collapsible open">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        SLICS (Subaxial Cervical Injury Classification)
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        ${buildCalculator(SLICS_DATA, 'slicsCalc')}
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        TLICS (Thoracolumbar Injury Classification)
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        ${buildCalculator(TLICS_DATA, 'tlicsCalc')}
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        SINS (Spinal Instability Neoplastic Score)
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        ${buildCalculator(SINS_DATA, 'sinsCalc')}
+      </div>
+    </div>
+
+    <div class="collapsible">
+      <button class="collapsible-header" onclick="toggleCollapsible(this)">
+        ESCC Grading (Epidural Spinal Cord Compression)
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="collapsible-body">
+        <p style="font-size:0.85rem;margin-bottom:8px;">Grade the degree of MESCC based on MRI T2 axial images at the site of greatest compression: ${refLink(21)}</p>
+        ${IMG.esccScale ? '<div class="thumb-container" onclick="openModal(IMG.esccScale)" style="margin-bottom:12px;cursor:pointer;"><img src="' + IMG.esccScale + '" alt="ESCC Grading Scale" style="width:100%;max-width:280px;border-radius:var(--radius);border:1px solid var(--grey-200);"><p style="font-size:0.75rem;color:var(--teal);margin-top:4px;">Tap to enlarge ESCC grading scale</p></div>' : ''}
+        <table class="data-table">
+          <thead><tr><th>ESCC Grade</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><strong>0</strong></td><td>Bone-only disease without epidural impingement</td></tr>
+            <tr><td><strong>1a</strong></td><td>Epidural impingement without thecal sac deformation</td></tr>
+            <tr><td><strong>1b</strong></td><td>Thecal sac deformation without spinal cord abutment</td></tr>
+            <tr><td><strong>1c</strong></td><td>Thecal sac deformation with cord abutment but no compression</td></tr>
+            <tr><td><strong>2</strong></td><td>Spinal cord compression with visible CSF still present</td></tr>
+            <tr><td><strong>3</strong></td><td>Spinal cord compression with no visible CSF around cord</td></tr>
+          </tbody>
+        </table>
+        <div class="info-box" style="margin-top:12px;"><strong>Low-grade:</strong> ESCC 0&ndash;1 (no myelopathy) &nbsp;&bull;&nbsp; <strong>High-grade:</strong> ESCC 2&ndash;3 (&plusmn; myelopathy)</div>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+// SECTION: CONTACTS (password-protected)
+// ============================================================
+function renderRefContacts() {
+  if (contactsUnlocked) {
+    return renderContactsList();
+  }
+  return `
+    <div class="section-header">Useful Contacts</div>
+    <div class="password-overlay">
+      <p style="margin-bottom:8px;color:var(--grey-600);">This section contains contact information for implant company representatives and hospital departments.</p>
+      <p style="font-weight:600;color:var(--navy);">Enter password to access:</p>
+      <input type="password" id="contactsPwd" placeholder="Password" onkeydown="if(event.key==='Enter')unlockContacts()">
+      <br>
+      <button class="btn btn-primary" onclick="unlockContacts()" style="margin-top:8px;">Unlock</button>
+      <div id="contactsError" style="color:var(--red);font-size:0.82rem;margin-top:8px;"></div>
+    </div>`;
+}
+
+function unlockContacts() {
+  var pwd = document.getElementById('contactsPwd').value.trim();
+  if (pwd !== CONTACTS_PASSWORD) {
+    document.getElementById('contactsError').textContent = 'Incorrect password.';
+    return;
+  }
+  contactsUnlocked = true;
+  document.getElementById('refContent').innerHTML = renderContactsList();
+}
+
+function renderContactsList() {
+  var html = '<div class="section-header">Useful Contacts</div>';
+  html += '<p style="font-size:0.82rem;color:var(--grey-500);margin-bottom:12px;">Implant Company Sales Representatives &amp; Hospital Departments</p>';
+  CONTACTS_DATA.forEach(function(group) {
+    html += '<div class="step-card" style="margin-bottom:12px;">';
+    html += '<h3 style="font-size:0.95rem;">' + group.group + '</h3>';
+    if (group.note) {
+      html += '<p style="font-size:0.78rem;color:var(--grey-500);margin-bottom:8px;">' + group.note + '</p>';
+    }
+    group.contacts.forEach(function(c) {
+      var tel = c.phone.replace(/\s/g, '');
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--grey-100);">';
+      html += '<span style="font-size:0.88rem;color:var(--grey-700);">' + c.name + '</span>';
+      html += '<a class="phone-link" href="tel:' + tel + '">' + c.phone + '</a>';
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+  return html;
+}
+
+// ============================================================
+// SECTION: KEY REFERENCES
+// ============================================================
+function renderRefReferences() {
+  var html = '<div class="section-header">Key References</div>';
+  html += '<div style="font-size:0.82rem;color:var(--grey-500);margin-bottom:12px;">' + REFERENCES.length + ' references</div>';
+  REFERENCES.forEach(function(ref) {
+    html += '<div class="ref-list-item" id="ref-item-' + ref.id + '">';
+    html += '<span class="ref-num">[' + ref.id + ']</span>';
+    html += ref.text;
+    html += '</div>';
+  });
+  return html;
+}
+</script>
