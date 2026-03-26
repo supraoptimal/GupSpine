@@ -35,14 +35,13 @@ body {
 }
 /* Header */
 .app-header {
-  background: var(--white);
-  color: var(--navy);
-  padding: 12px 20px;
+  background: var(--navy);
+  color: var(--white);
+  padding: 10px 20px;
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 2px 8px rgba(26,35,50,0.10);
-  border-bottom: 2px solid var(--grey-200);
+  box-shadow: var(--shadow-md);
 }
 .header-inner {
   max-width: 800px;
@@ -61,8 +60,19 @@ body {
   opacity: 0.7;
   margin-top: 2px;
 }
-.header-logo {
-  height: 100px;
+.header-logo-circle {
+  width: 120px;
+  height: 120px;
+  background: var(--white);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+  padding: 8px;
+}
+.header-logo-circle img {
+  height: 90px;
   width: auto;
 }
 /* Tab navigation */
