@@ -42,20 +42,21 @@ body {
 }
 /* Header */
 .app-header {
-  background: var(--navy);
-  color: var(--white);
-  padding: 16px 20px;
+  background: var(--white);
+  color: var(--navy);
+  padding: 12px 20px;
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 2px 8px rgba(26,35,50,0.10);
+  border-bottom: 2px solid var(--grey-200);
 }
 .header-inner {
   max-width: 800px;
   margin: 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
 }
 .app-title {
   font-size: 1.4rem;
@@ -68,7 +69,7 @@ body {
   margin-top: 2px;
 }
 .header-logo {
-  height: 48px;
+  height: 56px;
   width: auto;
 }
 /* Tab navigation */
