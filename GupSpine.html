@@ -78,8 +78,10 @@ body {
   margin-top: 2px;
 }
 .header-logo-circle {
-  width: 120px;
-  height: 120px;
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  min-height: 64px;
   background: var(--white);
   border-radius: 50%;
   overflow: hidden;
@@ -89,9 +91,17 @@ body {
   box-shadow: 0 2px 12px rgba(0,0,0,0.25);
 }
 .header-logo-circle img {
-  width: 120px;
-  height: 120px;
+  width: 64px;
+  height: 64px;
   object-fit: cover;
+}
+@media (min-width: 480px) {
+  .header-logo-circle { width: 90px; height: 90px; min-width: 90px; min-height: 90px; }
+  .header-logo-circle img { width: 90px; height: 90px; }
+}
+@media (min-width: 640px) {
+  .header-logo-circle { width: 120px; height: 120px; min-width: 120px; min-height: 120px; }
+  .header-logo-circle img { width: 120px; height: 120px; }
 }
 /* Tab navigation */
 .tab-bar {
